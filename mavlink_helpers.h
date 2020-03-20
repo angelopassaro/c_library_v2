@@ -68,7 +68,8 @@ MAVLINK_HELPER mavlink_message_t *mavlink_get_channel_buffer(uint8_t chan)
 */
 //#define MAVLINK_CHECK_MESSAGE_LENGTH
 
-#ifdef encryption
+//REMOVE
+//#ifdef encryption
 /*
 * Utils
 */
@@ -90,7 +91,7 @@ static void hex_print(uint8_t *pv, uint16_t s, uint16_t len)
 	}
 	printf("\n\n");
 }
-#endif
+//#endif
 
 /**
  * @brief Reset the status of a channel.
@@ -308,7 +309,6 @@ MAVLINK_HELPER uint16_t mavlink_finalize_message_buffer(mavlink_message_t *msg, 
 		buf[8] = (msg->msgid >> 8) & 0xFF;
 		buf[9] = (msg->msgid >> 16) & 0xFF;
 	}
-
 #ifdef encryption
 	uint8_t key[] = {
 		0x00, 0x01, 0x02, 0x03,
@@ -330,7 +330,6 @@ MAVLINK_HELPER uint16_t mavlink_finalize_message_buffer(mavlink_message_t *msg, 
 	memcpy((uint8_t *)_MAV_PAYLOAD(msg), encrypt, sizeof(encrypt));
 #endif
 	uint16_t checksum = crc_calculate(&buf[1], header_len - 1);
-	//crc_accumulate_buffer(&checksum, (const char *)encrypt, msg->len);
 	crc_accumulate_buffer(&checksum, _MAV_PAYLOAD(msg), msg->len);
 	crc_accumulate(crc_extra, &checksum);
 	mavlink_ck_a(msg) = (uint8_t)(checksum & 0xFF);
@@ -434,7 +433,6 @@ MAVLINK_HELPER void _mav_finalize_message_chan_send(mavlink_channel_t chan, uint
 	//printf("The length is %d\n", length);
 	//printf("Original data sent:\n");
 	//hex_print((uint8_t *)packet, 0, length);
-	//printf("\n================this is for chacha20------------------------------------------------\n");
 	uint8_t key[] = {
 		0x00, 0x01, 0x02, 0x03,
 		0x04, 0x05, 0x06, 0x07,
@@ -449,36 +447,28 @@ MAVLINK_HELPER void _mav_finalize_message_chan_send(mavlink_channel_t chan, uint
 	uint8_t encrypt[length];
 
 	ChaCha20XOR(key, 1, nonce, (uint8_t *)packet, (uint8_t *)encrypt, length);
+
+	memcpy((uint8_t *)packet, encrypt, sizeof(encrypt));
 	//printf("Encrypted data:\n");
 	//hex_print((uint8_t *)encrypt, 0, length);
 #endif
 	status->current_tx_seq++;
 	checksum = crc_calculate((const uint8_t *)&buf[1], header_len);
-#ifndef encryption
 	crc_accumulate_buffer(&checksum, packet, length);
-#else
-	crc_accumulate_buffer(&checksum, (const char *)encrypt, length); //substuite with  encypt payload
-#endif
 	crc_accumulate(crc_extra, &checksum);
 	ck[0] = (uint8_t)(checksum & 0xFF);
 	ck[1] = (uint8_t)(checksum >> 8);
 
 	if (signing)
 	{
-#ifndef encryption
 		// possibly add a signature
 		signature_len = mavlink_sign_packet(status->signing, signature, buf, header_len + 1,
 											(const uint8_t *)packet, length, ck);
-#else
-		signature_len = mavlink_sign_packet(status->signing, signature, buf, header_len + 1,
-											(const uint8_t *)encrypt, length, ck); //substuite with  encrypt payload
-#endif
 	}
 
 	MAVLINK_START_UART_SEND(chan, header_len + 3 + (uint16_t)length + (uint16_t)signature_len);
 	_mavlink_send_uart(chan, (const char *)buf, header_len + 1);
-	//_mavlink_send_uart(chan, packet, length);
-	_mavlink_send_uart(chan, (const char *)encrypt, length); //substuite with  encrypt payload
+	_mavlink_send_uart(chan, packet, length);
 	_mavlink_send_uart(chan, (const char *)ck, 2);
 	if (signature_len != 0)
 	{
@@ -883,6 +873,7 @@ MAVLINK_HELPER uint8_t mavlink_frame_char_buffer(mavlink_message_t *rxmsg,
 		}
 		else
 		{
+
 #ifdef encryption
 			uint8_t key[] = {
 				0x00, 0x01, 0x02, 0x03,
@@ -905,11 +896,11 @@ MAVLINK_HELPER uint8_t mavlink_frame_char_buffer(mavlink_message_t *rxmsg,
 				 * MAVLINK_MSG_ID_LOG_DATA 120
 				 * MAVLINK_MSG_ID_LOG_REQUEST_END 122
 				 * MAVLINK_MSG_ID_GPS2_RAW 124
+				 *
 				 **/
 				uint8_t decrypt[rxmsg->len];
 				//printf("Length: %d\tpayload: %s\n", rxmsg->len, _MAV_PAYLOAD(rxmsg));
 				//printf("Encrypt:\n");
-				//PAYLOAD FROM UAV !!!
 
 				//hex_print((uint8_t *)_MAV_PAYLOAD(rxmsg), 0, rxmsg->len);
 				ChaCha20XOR(key, 1, nonce, (uint8_t *)_MAV_PAYLOAD(rxmsg), (uint8_t *)decrypt, rxmsg->len);
@@ -1102,6 +1093,7 @@ MAVLINK_HELPER uint8_t mavlink_frame_char_buffer(mavlink_message_t *rxmsg,
  */
 MAVLINK_HELPER uint8_t mavlink_frame_char(uint8_t chan, uint8_t c, mavlink_message_t *r_message, mavlink_status_t *r_mavlink_status)
 {
+
 	return mavlink_frame_char_buffer(mavlink_get_channel_buffer(chan),
 									 mavlink_get_channel_status(chan),
 									 c,
@@ -1187,6 +1179,7 @@ MAVLINK_HELPER unsigned int mavlink_get_proto_version(uint8_t chan)
 MAVLINK_HELPER uint8_t mavlink_parse_char(uint8_t chan, uint8_t c, mavlink_message_t *r_message, mavlink_status_t *r_mavlink_status)
 {
 	uint8_t msg_received = mavlink_frame_char(chan, c, r_message, r_mavlink_status);
+	//hex_print((uint8_t *)_MAV_PAYLOAD(r_message), 0, r_message->len);
 	if (msg_received == MAVLINK_FRAMING_BAD_CRC ||
 		msg_received == MAVLINK_FRAMING_BAD_SIGNATURE)
 	{
