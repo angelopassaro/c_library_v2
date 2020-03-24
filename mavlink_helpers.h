@@ -10,17 +10,27 @@
 #define MAVLINK_HELPER
 #endif
 
-#include "mavlink_sha256.h"
-/*
-*include Crypto
-*/
-#include "chacha20.h"
-
 /**
  *Active/Disative encrypt 
  **/
 
-#define encryption
+#define ENCRYPTION
+
+//#define CHACHA20
+#define TRIVIUM
+
+#include "mavlink_sha256.h"
+/*
+*include Crypto
+*/
+#ifdef ENCRYPTION
+#ifdef CHACHA20
+#include "crypto/chacha20.h"
+#endif
+#ifdef TRIVIUM
+#include "crypto/trivium.h"
+#endif
+#endif
 
 #ifdef MAVLINK_USE_CXX_NAMESPACE
 namespace mavlink
@@ -309,7 +319,9 @@ MAVLINK_HELPER uint16_t mavlink_finalize_message_buffer(mavlink_message_t *msg, 
 		buf[8] = (msg->msgid >> 8) & 0xFF;
 		buf[9] = (msg->msgid >> 16) & 0xFF;
 	}
-#ifdef encryption
+#ifdef ENCRYPTION
+
+#ifdef CHACHA20
 	uint8_t key[] = {
 		0x00, 0x01, 0x02, 0x03,
 		0x04, 0x05, 0x06, 0x07,
@@ -328,6 +340,27 @@ MAVLINK_HELPER uint16_t mavlink_finalize_message_buffer(mavlink_message_t *msg, 
 
 	// copy encrypt in payload for checksum
 	memcpy((uint8_t *)_MAV_PAYLOAD(msg), encrypt, sizeof(encrypt));
+#endif
+
+#ifdef TRIVIUM
+	//initialize key
+	uint8_t key[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99};
+
+	//initialize initial vector
+	uint8_t iv[] = {
+		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23};
+
+	//declare state
+	uint8_t state[48];
+
+	//initialize state
+	setup((uint8_t *)state, (uint8_t *)key, (uint8_t *)iv);
+
+	//encrypt payload
+	trivium((uint8_t *)state, (uint8_t *)_MAV_PAYLOAD(msg), length);
+
+#endif
+
 #endif
 	uint16_t checksum = crc_calculate(&buf[1], header_len - 1);
 	crc_accumulate_buffer(&checksum, _MAV_PAYLOAD(msg), msg->len);
@@ -427,12 +460,10 @@ MAVLINK_HELPER void _mav_finalize_message_chan_send(mavlink_channel_t chan, uint
 		buf[8] = (msgid >> 8) & 0xFF;
 		buf[9] = (msgid >> 16) & 0xFF;
 	}
-#ifdef encryption
-	//printf("Header:\n");
-	//hex_print(buf, 0, header_len + 1);
-	//printf("The length is %d\n", length);
-	//printf("Original data sent:\n");
-	//hex_print((uint8_t *)packet, 0, length);
+#ifdef ENCRYPTION
+
+#ifdef CHACHA20
+	//set key
 	uint8_t key[] = {
 		0x00, 0x01, 0x02, 0x03,
 		0x04, 0x05, 0x06, 0x07,
@@ -442,15 +473,37 @@ MAVLINK_HELPER void _mav_finalize_message_chan_send(mavlink_channel_t chan, uint
 		0x14, 0x15, 0x16, 0x17,
 		0x18, 0x19, 0x1a, 0x1b,
 		0x1c, 0x1d, 0x1e, 0x1f};
+	//set nonce
 	uint8_t nonce[] = {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x4a, 0x00, 0x00, 0x00, 0x00};
+	//declare encrypt
 	uint8_t encrypt[length];
 
+	//encrypt payload
 	ChaCha20XOR(key, 1, nonce, (uint8_t *)packet, (uint8_t *)encrypt, length);
 
+	//copy encrypted payload
 	memcpy((uint8_t *)packet, encrypt, sizeof(encrypt));
-	//printf("Encrypted data:\n");
-	//hex_print((uint8_t *)encrypt, 0, length);
+#endif
+
+#ifdef TRIVIUM
+	//set key
+	uint8_t key[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99};
+
+	//set initial vector
+	uint8_t iv[] = {
+		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23};
+
+	//declare state
+	uint8_t state[48];
+
+	//initialize state
+	setup((uint8_t *)state, (uint8_t *)key, (uint8_t *)iv);
+
+	//encrypt payload
+	trivium((uint8_t *)state, (uint8_t *)packet, length);
+#endif
+
 #endif
 	status->current_tx_seq++;
 	checksum = crc_calculate((const uint8_t *)&buf[1], header_len);
@@ -465,7 +518,6 @@ MAVLINK_HELPER void _mav_finalize_message_chan_send(mavlink_channel_t chan, uint
 		signature_len = mavlink_sign_packet(status->signing, signature, buf, header_len + 1,
 											(const uint8_t *)packet, length, ck);
 	}
-
 	MAVLINK_START_UART_SEND(chan, header_len + 3 + (uint16_t)length + (uint16_t)signature_len);
 	_mavlink_send_uart(chan, (const char *)buf, header_len + 1);
 	_mavlink_send_uart(chan, packet, length);
@@ -874,21 +926,21 @@ MAVLINK_HELPER uint8_t mavlink_frame_char_buffer(mavlink_message_t *rxmsg,
 		else
 		{
 
-#ifdef encryption
-			uint8_t key[] = {
-				0x00, 0x01, 0x02, 0x03,
-				0x04, 0x05, 0x06, 0x07,
-				0x08, 0x09, 0x0a, 0x0b,
-				0x0c, 0x0d, 0x0e, 0x0f,
-				0x10, 0x11, 0x12, 0x13,
-				0x14, 0x15, 0x16, 0x17,
-				0x18, 0x19, 0x1a, 0x1b,
-				0x1c, 0x1d, 0x1e, 0x1f};
-			uint8_t nonce[] = {
-				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x4a, 0x00, 0x00, 0x00, 0x00};
-
+#ifdef ENCRYPTION
 			if (rxmsg->len > 0)
 			{
+#ifdef CHACHA20
+				uint8_t key[] = {
+					0x00, 0x01, 0x02, 0x03,
+					0x04, 0x05, 0x06, 0x07,
+					0x08, 0x09, 0x0a, 0x0b,
+					0x0c, 0x0d, 0x0e, 0x0f,
+					0x10, 0x11, 0x12, 0x13,
+					0x14, 0x15, 0x16, 0x17,
+					0x18, 0x19, 0x1a, 0x1b,
+					0x1c, 0x1d, 0x1e, 0x1f};
+				uint8_t nonce[] = {
+					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x4a, 0x00, 0x00, 0x00, 0x00};
 				/**
 				 * Error on message 119, 120, 122, 124(no during fly)
 				 * 
@@ -907,6 +959,25 @@ MAVLINK_HELPER uint8_t mavlink_frame_char_buffer(mavlink_message_t *rxmsg,
 				memcpy((uint8_t *)_MAV_PAYLOAD(rxmsg), decrypt, sizeof(decrypt));
 				//printf("Decrypt: %d\n", decrypt);
 				//hex_print((uint8_t *)decrypt, 0, rxmsg->len);
+#endif
+
+#ifdef TRIVIUM
+				//initialize key
+				uint8_t key[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99};
+
+				//initialize initial vector
+				uint8_t iv[] = {
+					0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23};
+
+				//declare state
+				uint8_t state[48];
+
+				//initialize state
+				setup((uint8_t *)state, (uint8_t *)key, (uint8_t *)iv);
+
+				//decrypt payload
+				trivium((uint8_t *)state, (uint8_t *)_MAV_PAYLOAD(rxmsg), rxmsg->len);
+#endif
 			}
 #endif
 
