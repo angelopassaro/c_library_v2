@@ -93,7 +93,11 @@ static inline void update(uint64_t *state, uint64_t *t1, uint64_t *t2, uint64_t 
 
     *t3 ^= (x1 & x2) ^ x3;
 }
-
+/**
+ * 
+ * key 80 bits
+ * iv 80 bits
+ **/
 MAVLINK_HELPER void setup(uint8_t *state, uint8_t *key, uint8_t *iv)
 {
     uint64_t t1, t2, t3;
@@ -231,58 +235,3 @@ MAVLINK_HELPER void trivium(uint8_t *state, uint8_t *stream, uint16_t length)
 #ifdef MAVLINK_USE_CXX_NAMESPACE
 } // namespace mavlink
 #endif
-
-/**
-
-static void hex_print(uint8_t *pv, uint16_t s, uint16_t len)
-{
-    uint8_t *p = pv;
-    if (NULL == pv)
-        printf("NULL");
-    else
-    {
-        unsigned int i;
-        for (i = s; i < len; ++i)
-            printf("%02x ", p[i]);
-    }
-    printf("\n\n");
-}
-
-int main()
-{
-
-    uint8_t key[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99};
-
-    uint8_t iv[] = {
-        0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23};
-
-    uint8_t plain[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-    uint8_t state[48];
-
-    printf("Plaintext\n");
-    hex_print((uint8_t *)plain, 0, sizeof(plain));
-
-    printf("Key\n");
-    hex_print((uint8_t *)key, 0, sizeof(key));
-
-    printf("iv\n");
-    hex_print((uint8_t *)iv, 0, sizeof(iv));
-
-    setup((uint8_t *)state, (uint8_t *)key, (uint8_t *)iv);
-    printf("State\n");
-    hex_print((uint8_t *)state, 0, 48);
-
-    trivium((uint8_t *)state, (uint8_t *)plain, sizeof(plain));
-    printf("Encrypt\n");
-    hex_print((uint8_t *)plain, 0, sizeof(plain));
-
-    uint8_t restate[48];
-    setup((uint8_t *)restate, (uint8_t *)key, (uint8_t *)iv);
-    printf("Decrypt\n");
-    trivium((uint8_t *)restate, (uint8_t *)plain, sizeof(plain));
-    hex_print((uint8_t *)plain, 0, sizeof(plain));
-
-    return 0;
-}
-**/
