@@ -17,7 +17,8 @@
 #define ENCRYPTION
 
 //#define CHACHA20
-#define TRIVIUM
+//#define TRIVIUM
+#define RABBIT
 
 #include "mavlink_sha256.h"
 /*
@@ -29,6 +30,9 @@
 #endif
 #ifdef TRIVIUM
 #include "crypto/trivium.h"
+#endif
+#ifdef RABBIT
+#include "crypto/rabbit.h"
 #endif
 #endif
 
@@ -361,6 +365,26 @@ MAVLINK_HELPER uint16_t mavlink_finalize_message_buffer(mavlink_message_t *msg, 
 
 #endif
 
+#ifdef RABBIT
+
+	//128 bits key
+	const uint8_t key[] =
+    	    {
+        	    0x9f, 0x45, 0xd6, 0x2b,
+            	0x00, 0xb3, 0xc5, 0x82,
+            	0x10, 0x49, 0x2c, 0x95,
+            	0x48, 0xff, 0x81, 0x48};
+	//64 bits iv
+	const uint8_t iv[] = {
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
+
+	uint8_t encrypt[length];
+	//encrypt payload 
+	rabbit((uint8_t *)iv,(uint8_t *)key,(uint8_t *)_MAV_PAYLOAD(msg),encrypt,length);
+	//copy encrypted payload in msg
+	memcpy((uint8_t *)_MAV_PAYLOAD(msg),encrypt,sizeof(encrypt));
+#endif
+
 #endif
 	uint16_t checksum = crc_calculate(&buf[1], header_len - 1);
 	crc_accumulate_buffer(&checksum, _MAV_PAYLOAD(msg), msg->len);
@@ -502,6 +526,26 @@ MAVLINK_HELPER void _mav_finalize_message_chan_send(mavlink_channel_t chan, uint
 
 	//encrypt payload
 	trivium((uint8_t *)state, (uint8_t *)packet, length);
+#endif
+
+#ifdef RABBIT
+
+	//128 bits key
+	const uint8_t key[] =
+    	    {
+        	    0x9f, 0x45, 0xd6, 0x2b,
+            	0x00, 0xb3, 0xc5, 0x82,
+            	0x10, 0x49, 0x2c, 0x95,
+            	0x48, 0xff, 0x81, 0x48};
+	//64 bits iv
+	const uint8_t iv[] = {
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
+
+	uint8_t encrypt[length];
+	//encrypt payload 
+	rabbit((uint8_t *)iv,(uint8_t *)key,(uint8_t *)packet,encrypt,length);
+	//copy encrypted payload in msg
+	memcpy((uint8_t *)packet,encrypt,sizeof(encrypt));
 #endif
 
 #endif
@@ -942,7 +986,9 @@ MAVLINK_HELPER uint8_t mavlink_frame_char_buffer(mavlink_message_t *rxmsg,
 				uint8_t nonce[] = {
 					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x4a, 0x00, 0x00, 0x00, 0x00};
 				/**
-				 * Error on message 119, 120, 122, 124(no during fly)
+				 * false positives maybe
+				 * 
+				 * Error on message 119, 120, 122, 124 (INVALID DATA TYPE USED AS PARAMETER VALUE on QgroundControl)
 				 * 
 				 * MAVLINK_MSG_ID_LOG_REQUEST_DATA 119
 				 * MAVLINK_MSG_ID_LOG_DATA 120
@@ -977,6 +1023,37 @@ MAVLINK_HELPER uint8_t mavlink_frame_char_buffer(mavlink_message_t *rxmsg,
 
 				//decrypt payload
 				trivium((uint8_t *)state, (uint8_t *)_MAV_PAYLOAD(rxmsg), rxmsg->len);
+#endif
+
+#ifdef RABBIT
+
+		//128 bits key
+		const uint8_t key[] =
+    	    	{
+        	    	0x9f, 0x45, 0xd6, 0x2b,
+            		0x00, 0xb3, 0xc5, 0x82,
+            		0x10, 0x49, 0x2c, 0x95,
+            		0x48, 0xff, 0x81, 0x48};
+		//64 bits iv
+		const uint8_t iv[] = {
+        	0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
+
+		uint8_t decrypt[rxmsg->len];
+
+		/**
+	 	* false positives maybe
+	 	* 
+	 	* Error on message 71, 74, 76 (INVALID DATA TYPE USED AS PARAMETER VALUE on QgroundControl)
+	 	* 
+	 	* NOT EXIST     		   71
+	 	* MAVLINK_MSG_ID_VFR_HUD   74
+	 	* MAVLINK_MSG_ID COMMAND_LONG 76
+	 	*
+	 	**/
+		//decrypt payload 
+		rabbit((uint8_t *)iv,(uint8_t *)key,(uint8_t *)_MAV_PAYLOAD(rxmsg),decrypt,rxmsg->len);
+		//copy encrypted payload in msg
+		memcpy((uint8_t *)_MAV_PAYLOAD(rxmsg),decrypt,sizeof(decrypt));
 #endif
 			}
 #endif
