@@ -17,8 +17,8 @@
 #define ENCRYPTION
 
 //#define CHACHA20
-// define TRIVIUM
-#define RABBIT
+#define TRIVIUM
+//#define RABBIT
 
 #include "mavlink_sha256.h"
 /*
@@ -355,7 +355,7 @@ MAVLINK_HELPER uint16_t mavlink_finalize_message_buffer(mavlink_message_t *msg, 
 		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23};
 
 	//encrypt payload
-	trivium((uint8_t *)key,(uint8_t *)iv, (uint8_t *)_MAV_PAYLOAD(msg), length);
+	trivium((uint8_t *)key, (uint8_t *)iv, (uint8_t *)_MAV_PAYLOAD(msg), length);
 
 #endif
 
@@ -363,20 +363,20 @@ MAVLINK_HELPER uint16_t mavlink_finalize_message_buffer(mavlink_message_t *msg, 
 
 	//128 bits key
 	const uint8_t key[] =
-    	    {
-        	    0x9f, 0x45, 0xd6, 0x2b,
-            	0x00, 0xb3, 0xc5, 0x82,
-            	0x10, 0x49, 0x2c, 0x95,
-            	0x48, 0xff, 0x81, 0x48};
+		{
+			0x9f, 0x45, 0xd6, 0x2b,
+			0x00, 0xb3, 0xc5, 0x82,
+			0x10, 0x49, 0x2c, 0x95,
+			0x48, 0xff, 0x81, 0x48};
 	//64 bits iv
 	const uint8_t iv[] = {
-        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
+		0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
 
 	uint8_t encrypt[length];
-	//encrypt payload 
-	rabbit((uint8_t *)iv,(uint8_t *)key,(uint8_t *)_MAV_PAYLOAD(msg),encrypt,length);
+	//encrypt payload
+	rabbit((uint8_t *)iv, (uint8_t *)key, (uint8_t *)_MAV_PAYLOAD(msg), encrypt, length);
 	//copy encrypted payload in msg
-	memcpy((uint8_t *)_MAV_PAYLOAD(msg),encrypt,sizeof(encrypt));
+	memcpy((uint8_t *)_MAV_PAYLOAD(msg), encrypt, sizeof(encrypt));
 #endif
 
 #endif
@@ -513,7 +513,7 @@ MAVLINK_HELPER void _mav_finalize_message_chan_send(mavlink_channel_t chan, uint
 		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23};
 
 	//encrypt payload
-	trivium((uint8_t *)key,(uint8_t *)iv, (uint8_t *)packet, length);
+	trivium((uint8_t *)key, (uint8_t *)iv, (uint8_t *)packet, length);
 
 #endif
 
@@ -521,20 +521,20 @@ MAVLINK_HELPER void _mav_finalize_message_chan_send(mavlink_channel_t chan, uint
 
 	//128 bits key
 	const uint8_t key[] =
-    	    {
-        	    0x9f, 0x45, 0xd6, 0x2b,
-            	0x00, 0xb3, 0xc5, 0x82,
-            	0x10, 0x49, 0x2c, 0x95,
-            	0x48, 0xff, 0x81, 0x48};
+		{
+			0x9f, 0x45, 0xd6, 0x2b,
+			0x00, 0xb3, 0xc5, 0x82,
+			0x10, 0x49, 0x2c, 0x95,
+			0x48, 0xff, 0x81, 0x48};
 	//64 bits iv
 	const uint8_t iv[] = {
-        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
+		0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
 
 	uint8_t encrypt[length];
-	//encrypt payload 
-	rabbit((uint8_t *)iv,(uint8_t *)key,(uint8_t *)packet,encrypt,length);
+	//encrypt payload
+	rabbit((uint8_t *)iv, (uint8_t *)key, (uint8_t *)packet, encrypt, length);
 	//copy encrypted payload in msg
-	memcpy((uint8_t *)packet,encrypt,sizeof(encrypt));
+	memcpy((uint8_t *)packet, encrypt, sizeof(encrypt));
 #endif
 
 #endif
@@ -998,27 +998,27 @@ MAVLINK_HELPER uint8_t mavlink_frame_char_buffer(mavlink_message_t *rxmsg,
 
 #ifdef TRIVIUM
 				//initialize key
-				uint8_t key[] = {0x00, 0x11, 0x22,0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99};
+				uint8_t key[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99};
 
 				//initialize initial vector
 				uint8_t iv[] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23};
 
 				//encrypt payload
-				trivium((uint8_t *)key,(uint8_t *)iv, (uint8_t *)_MAV_PAYLOAD(rxmsg), rxmsg->len);
+				trivium((uint8_t *)key, (uint8_t *)iv, (uint8_t *)_MAV_PAYLOAD(rxmsg), rxmsg->len);
 #endif
 
 #ifdef RABBIT
 
 				//128 bits key
 				const uint8_t key[] =
-    	    			{
-        	    			0x9f, 0x45, 0xd6, 0x2b,
-            				0x00, 0xb3, 0xc5, 0x82,
-            				0x10, 0x49, 0x2c, 0x95,
-            				0x48, 0xff, 0x81, 0x48};
+					{
+						0x9f, 0x45, 0xd6, 0x2b,
+						0x00, 0xb3, 0xc5, 0x82,
+						0x10, 0x49, 0x2c, 0x95,
+						0x48, 0xff, 0x81, 0x48};
 				//64 bits iv
 				const uint8_t iv[] = {
-        		0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
+					0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
 
 				uint8_t decrypt[rxmsg->len];
 
@@ -1032,10 +1032,10 @@ MAVLINK_HELPER uint8_t mavlink_frame_char_buffer(mavlink_message_t *rxmsg,
 				* MAVLINK_MSG_ID COMMAND_LONG 76
 				*
 				**/
-				//decrypt payload 
-				rabbit((uint8_t *)iv,(uint8_t *)key,(uint8_t *)_MAV_PAYLOAD(rxmsg),decrypt,rxmsg->len);
+				//decrypt payload
+				rabbit((uint8_t *)iv, (uint8_t *)key, (uint8_t *)_MAV_PAYLOAD(rxmsg), decrypt, rxmsg->len);
 				//copy encrypted payload in msg
-				memcpy((uint8_t *)_MAV_PAYLOAD(rxmsg),decrypt,sizeof(decrypt));
+				memcpy((uint8_t *)_MAV_PAYLOAD(rxmsg), decrypt, sizeof(decrypt));
 #endif
 			}
 #endif
