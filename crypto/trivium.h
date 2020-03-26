@@ -26,6 +26,7 @@
  *
  */
 #pragma once
+
 #ifndef _TRIVIUM_H
 #define _TRIVIUM_H
 
@@ -95,10 +96,7 @@ static inline void update(uint64_t *state, uint64_t *t1, uint64_t *t2, uint64_t 
 
     *t3 ^= (x1 & x2) ^ x3;
 }
-/*
- * key 80 bits
- * iv 80 bits
- */
+
 MAVLINK_HELPER void setup(uint8_t *state, uint8_t *key, uint8_t *iv)
 {
     uint64_t t1, t2, t3;
@@ -218,9 +216,9 @@ MAVLINK_HELPER void setup(uint8_t *state, uint8_t *key, uint8_t *iv)
     rotate(State, &t1, &t2, &t3);
 }
 
-MAVLINK_HELPER void trivium(uint8_t *state, uint8_t *stream, uint16_t length)
+inline void _cipher(uint8_t *state, uint8_t *stream, uint16_t length)
 {
-    uint16_t i;
+    uint16_t  i;
     uint64_t t1, t2, t3;
 
     uint64_t *State = (uint64_t *)state;
@@ -232,6 +230,19 @@ MAVLINK_HELPER void trivium(uint8_t *state, uint8_t *stream, uint16_t length)
         rotate(State, &t1, &t2, &t3);
     }
 }
+
+MAVLINK_HELPER void trivium(uint8_t *key, uint8_t *iv, uint8_t *stream, uint8_t length){
+
+    //state
+	uint8_t state[48];
+
+    //setup state
+    setup((uint8_t *)state,(uint8_t *)key, (uint8_t *)iv);
+    _cipher((uint8_t *)state, (uint8_t *)stream, length);
+
+}
+
+
 
 #ifdef MAVLINK_USE_CXX_NAMESPACE
 } // namespace mavlink
