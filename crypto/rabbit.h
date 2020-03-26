@@ -198,9 +198,9 @@ inline void _cipher(t_instance *p_instance, const uint8_t *p_src, uint8_t *p_des
 MAVLINK_HELPER void rabbit(const uint8_t *iv, const uint8_t *p_key, const uint8_t *p_src, uint8_t *p_dest, size_t data_size ){
     t_instances instances;
 
-    key_setup(&instances, (uint8_t *)p_key);
-    iv_setup(&instances, iv);
-    _cipher(&instances.work, (uint8_t *)p_src, (uint8_t *)p_dest, data_size);
+    key_setup((t_instances *)&instances, (uint8_t *)p_key);
+    iv_setup((t_instances *)&instances, iv);
+    _cipher((t_instance *)&instances.work, (uint8_t *)p_src, (uint8_t *)p_dest, data_size);
 
 
 }
