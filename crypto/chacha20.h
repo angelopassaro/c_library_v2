@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef _CHACHA20_H
+#define _CHACHA20_H
+
 #ifdef MAVLINK_USE_CXX_NAMESPACE
 namespace mavlink
 {
@@ -138,4 +141,6 @@ MAVLINK_HELPER void ChaCha20XOR(uint8_t key[32], uint32_t counter, uint8_t nonce
 
 #ifdef MAVLINK_USE_CXX_NAMESPACE
 } // namespace mavlink
+#endif
+
 #endif
