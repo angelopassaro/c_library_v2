@@ -7,15 +7,6 @@
 #ifndef _RABBIT_H
 #define _RABBIT_H
 
-#ifdef MAVLINK_USE_CXX_NAMESPACE
-namespace mavlink
-{
-#endif
-
-#ifndef MAVLINK_HELPER
-#define MAVLINK_HELPER
-#endif
-
 #include <stddef.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -54,7 +45,7 @@ inline uint32_t g_func(uint32_t x)
 }
 
 // Calculate the next internal state
- inline void next_state(t_instance *p_instance)
+inline void next_state(t_instance *p_instance)
 {
     // Temporary data
     uint32_t g[8], c_old[8], i;
@@ -64,7 +55,7 @@ inline uint32_t g_func(uint32_t x)
         c_old[i] = p_instance->c[i];
 
     // Calculate new counter values
-    p_instance->c[0] += 0x4D34D34D +  p_instance->carry;
+    p_instance->c[0] += 0x4D34D34D + p_instance->carry;
     p_instance->c[1] += 0xD34D34D3 + (p_instance->c[0] < c_old[0]);
     p_instance->c[2] += 0x34D34D34 + (p_instance->c[1] < c_old[1]);
     p_instance->c[3] += 0x4D34D34D + (p_instance->c[2] < c_old[2]);
@@ -172,7 +163,6 @@ inline void iv_setup(t_instances *instances, const uint8_t *iv)
         next_state(&(instances->work));
 }
 
-
 // Encrypt or decrypt a block of data
 inline void _cipher(t_instance *p_instance, const uint8_t *p_src, uint8_t *p_dest, size_t data_size)
 {
@@ -195,16 +185,12 @@ inline void _cipher(t_instance *p_instance, const uint8_t *p_src, uint8_t *p_des
     }
 }
 
-MAVLINK_HELPER void rabbit(const uint8_t *iv, const uint8_t *p_key, const uint8_t *p_src, uint8_t *p_dest, size_t data_size ){
+MAVLINK_HELPER void rabbit(const uint8_t *iv, const uint8_t *p_key, const uint8_t *p_src, uint8_t *p_dest, size_t data_size)
+{
     t_instances instances;
 
     key_setup((t_instances *)&instances, (uint8_t *)p_key);
     iv_setup((t_instances *)&instances, iv);
     _cipher((t_instance *)&instances.work, (uint8_t *)p_src, (uint8_t *)p_dest, data_size);
-
-
 }
-#ifdef MAVLINK_USE_CXX_NAMESPACE
-} // namespace mavlink
-#endif
 #endif

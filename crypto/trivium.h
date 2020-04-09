@@ -30,15 +30,6 @@
 #ifndef _TRIVIUM_H
 #define _TRIVIUM_H
 
-#ifdef MAVLINK_USE_CXX_NAMESPACE
-namespace mavlink
-{
-#endif
-
-#ifndef MAVLINK_HELPER
-#define MAVLINK_HELPER
-#endif
-
 #include <stdint.h>
 #include <stdio.h>
 
@@ -218,7 +209,7 @@ MAVLINK_HELPER void setup(uint8_t *state, uint8_t *key, uint8_t *iv)
 
 inline void _cipher(uint8_t *state, uint8_t *stream, uint16_t length)
 {
-    uint16_t  i;
+    uint16_t i;
     uint64_t t1, t2, t3;
 
     uint64_t *State = (uint64_t *)state;
@@ -231,20 +222,15 @@ inline void _cipher(uint8_t *state, uint8_t *stream, uint16_t length)
     }
 }
 
-MAVLINK_HELPER void trivium(uint8_t *key, uint8_t *iv, uint8_t *stream, uint8_t length){
+MAVLINK_HELPER void trivium(uint8_t *key, uint8_t *iv, uint8_t *stream, uint8_t length)
+{
 
     //state
-	uint8_t state[48];
+    uint8_t state[48];
 
     //setup state
-    setup((uint8_t *)state,(uint8_t *)key, (uint8_t *)iv);
+    setup((uint8_t *)state, (uint8_t *)key, (uint8_t *)iv);
     _cipher((uint8_t *)state, (uint8_t *)stream, length);
-
 }
 
-
-
-#ifdef MAVLINK_USE_CXX_NAMESPACE
-} // namespace mavlink
-#endif
 #endif
