@@ -17,8 +17,10 @@
 #define ENCRYPTION
 
 //#define CHACHA20
-#define TRIVIUM
+//#define TRIVIUM
 //#define RABBIT
+//#define SIMON6496
+#define SIMON64128
 
 #include "mavlink_sha256.h"
 /*
@@ -33,6 +35,12 @@
 #endif
 #ifdef RABBIT
 #include "crypto/rabbit.h"
+#endif
+#ifdef SIMON6496
+#include "crypto/simon6496.h"
+#endif
+#ifdef SIMON64128
+#include "crypto/simon64128.h"
 #endif
 #endif
 
@@ -81,31 +89,6 @@ MAVLINK_HELPER mavlink_message_t *mavlink_get_channel_buffer(uint8_t chan)
     the headers.
 */
 //#define MAVLINK_CHECK_MESSAGE_LENGTH
-
-//REMOVE
-//#ifdef encryption
-/*
-* Utils
-*/
-static void hex_print(uint8_t *pv, uint16_t s, uint16_t len);
-
-/**
- *  Utils
- **/
-static void hex_print(uint8_t *pv, uint16_t s, uint16_t len)
-{
-	uint8_t *p = pv;
-	if (NULL == pv)
-		printf("NULL");
-	else
-	{
-		unsigned int i;
-		for (i = s; i < len; ++i)
-			printf("%02x ", p[i]);
-	}
-	printf("\n\n");
-}
-//#endif
 
 /**
  * @brief Reset the status of a channel.
@@ -343,7 +326,7 @@ MAVLINK_HELPER uint16_t mavlink_finalize_message_buffer(mavlink_message_t *msg, 
 	ChaCha20XOR(key, 1, nonce, (uint8_t *)_MAV_PAYLOAD(msg), (uint8_t *)encrypt, length);
 
 	// copy encrypt in payload for checksum
-	memcpy((uint8_t *)_MAV_PAYLOAD(msg), encrypt, sizeof(encrypt));
+	memcpy((uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), encrypt, sizeof(encrypt));
 #endif
 
 #ifdef TRIVIUM
@@ -355,7 +338,7 @@ MAVLINK_HELPER uint16_t mavlink_finalize_message_buffer(mavlink_message_t *msg, 
 		0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23};
 
 	//encrypt payload
-	trivium((uint8_t *)key, (uint8_t *)iv, (uint8_t *)_MAV_PAYLOAD(msg), length);
+	trivium((uint8_t *)key, (uint8_t *)iv, (uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), length);
 
 #endif
 
@@ -374,9 +357,24 @@ MAVLINK_HELPER uint16_t mavlink_finalize_message_buffer(mavlink_message_t *msg, 
 
 	uint8_t encrypt[length];
 	//encrypt payload
-	rabbit((uint8_t *)iv, (uint8_t *)key, (uint8_t *)_MAV_PAYLOAD(msg), encrypt, length);
+	rabbit((uint8_t *)iv, (uint8_t *)key, (const uint8_t *)_MAV_PAYLOAD(msg), encrypt, length);
 	//copy encrypted payload in msg
-	memcpy((uint8_t *)_MAV_PAYLOAD(msg), encrypt, sizeof(encrypt));
+	memcpy((uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), encrypt, sizeof(encrypt));
+#endif
+
+#ifdef SIMON6496
+	uint8_t k[] = {0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0a, 0x0b, 0x10, 0x11, 0x12, 0x13};
+	uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0a, 0x0b};
+
+	Simon6496(nonce, k, (uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), msg->len);
+
+#endif
+
+#ifdef SIMON64128
+	uint8_t k[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+	uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0a, 0x0b};
+
+	Simon64128(nonce, k, (uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), msg->len);
 #endif
 
 #endif
@@ -535,6 +533,19 @@ MAVLINK_HELPER void _mav_finalize_message_chan_send(mavlink_channel_t chan, uint
 	rabbit((uint8_t *)iv, (uint8_t *)key, (uint8_t *)packet, encrypt, length);
 	//copy encrypted payload in msg
 	memcpy((uint8_t *)packet, encrypt, sizeof(encrypt));
+#endif
+
+#ifdef SIMON6496
+	uint8_t k[] = {0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0a, 0x0b, 0x10, 0x11, 0x12, 0x13};
+	uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0a, 0x0b};
+	Simon6496(nonce, k, (uint8_t *)packet, length);
+#endif
+
+#ifdef SIMON64128
+	uint8_t k[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+	uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0a, 0x0b};
+
+	Simon64128(nonce, k, (uint8_t *)packet, length);
 #endif
 
 #endif
@@ -958,88 +969,6 @@ MAVLINK_HELPER uint8_t mavlink_frame_char_buffer(mavlink_message_t *rxmsg,
 		}
 		else
 		{
-
-#ifdef ENCRYPTION
-			if (rxmsg->len > 0)
-			{
-#ifdef CHACHA20
-				uint8_t key[] = {
-					0x00, 0x01, 0x02, 0x03,
-					0x04, 0x05, 0x06, 0x07,
-					0x08, 0x09, 0x0a, 0x0b,
-					0x0c, 0x0d, 0x0e, 0x0f,
-					0x10, 0x11, 0x12, 0x13,
-					0x14, 0x15, 0x16, 0x17,
-					0x18, 0x19, 0x1a, 0x1b,
-					0x1c, 0x1d, 0x1e, 0x1f};
-				uint8_t nonce[] = {
-					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x4a, 0x00, 0x00, 0x00, 0x00};
-				/**
-				 * false positives maybe
-				 * 
-				 * Error on message 119, 120, 122, 124 (INVALID DATA TYPE USED AS PARAMETER VALUE on QgroundControl)
-				 * 
-				 * MAVLINK_MSG_ID_LOG_REQUEST_DATA 119
-				 * MAVLINK_MSG_ID_LOG_DATA 120
-				 * MAVLINK_MSG_ID_LOG_REQUEST_END 122
-				 * MAVLINK_MSG_ID_GPS2_RAW 124
-				 *
-				 **/
-				uint8_t decrypt[rxmsg->len];
-				//printf("Length: %d\tpayload: %s\n", rxmsg->len, _MAV_PAYLOAD(rxmsg));
-				//printf("Encrypt:\n");
-
-				//hex_print((uint8_t *)_MAV_PAYLOAD(rxmsg), 0, rxmsg->len);
-				ChaCha20XOR(key, 1, nonce, (uint8_t *)_MAV_PAYLOAD(rxmsg), (uint8_t *)decrypt, rxmsg->len);
-				memcpy((uint8_t *)_MAV_PAYLOAD(rxmsg), decrypt, sizeof(decrypt));
-				//printf("Decrypt: %d\n", decrypt);
-				//hex_print((uint8_t *)decrypt, 0, rxmsg->len);
-#endif
-
-#ifdef TRIVIUM
-				//initialize key
-				uint8_t key[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99};
-
-				//initialize initial vector
-				uint8_t iv[] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23};
-
-				//encrypt payload
-				trivium((uint8_t *)key, (uint8_t *)iv, (uint8_t *)_MAV_PAYLOAD(rxmsg), rxmsg->len);
-#endif
-
-#ifdef RABBIT
-
-				//128 bits key
-				const uint8_t key[] =
-					{
-						0x9f, 0x45, 0xd6, 0x2b,
-						0x00, 0xb3, 0xc5, 0x82,
-						0x10, 0x49, 0x2c, 0x95,
-						0x48, 0xff, 0x81, 0x48};
-				//64 bits iv
-				const uint8_t iv[] = {
-					0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
-
-				uint8_t decrypt[rxmsg->len];
-
-				/**
-				* false positives maybe
-				* 
-				* Error on message 71, 74, 76 (INVALID DATA TYPE USED AS PARAMETER VALUE on QgroundControl)
-				* 
-				* NOT EXIST     		   71
-				* MAVLINK_MSG_ID_VFR_HUD   74
-				* MAVLINK_MSG_ID COMMAND_LONG 76
-				*
-				**/
-				//decrypt payload
-				rabbit((uint8_t *)iv, (uint8_t *)key, (uint8_t *)_MAV_PAYLOAD(rxmsg), decrypt, rxmsg->len);
-				//copy encrypted payload in msg
-				memcpy((uint8_t *)_MAV_PAYLOAD(rxmsg), decrypt, sizeof(decrypt));
-#endif
-			}
-#endif
-
 			status->parse_state = MAVLINK_PARSE_STATE_GOT_CRC1;
 		}
 		rxmsg->ck[0] = c;
@@ -1091,6 +1020,99 @@ MAVLINK_HELPER uint8_t mavlink_frame_char_buffer(mavlink_message_t *rxmsg,
 					status->msg_received = MAVLINK_FRAMING_BAD_SIGNATURE;
 				}
 			}
+
+#ifdef ENCRYPTION
+#ifdef CHACHA20
+			uint8_t key[] = {
+				0x00, 0x01, 0x02, 0x03,
+				0x04, 0x05, 0x06, 0x07,
+				0x08, 0x09, 0x0a, 0x0b,
+				0x0c, 0x0d, 0x0e, 0x0f,
+				0x10, 0x11, 0x12, 0x13,
+				0x14, 0x15, 0x16, 0x17,
+				0x18, 0x19, 0x1a, 0x1b,
+				0x1c, 0x1d, 0x1e, 0x1f};
+			uint8_t nonce[] = {
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x4a, 0x00, 0x00, 0x00, 0x00};
+			/**
+				 * false positives maybe
+				 * 
+				 * Error on message 119, 120, 122, 124 (INVALID DATA TYPE USED AS PARAMETER VALUE on QgroundControl)
+				 * 
+				 * MAVLINK_MSG_ID_LOG_REQUEST_DATA 119
+				 * MAVLINK_MSG_ID_LOG_DATA 120
+				 * MAVLINK_MSG_ID_LOG_REQUEST_END 122
+				 * MAVLINK_MSG_ID_GPS2_RAW 124
+				 *
+				 **/
+			uint8_t decrypt[rxmsg->len];
+			//printf("Length: %d\tpayload: %s\n", rxmsg->len, _MAV_PAYLOAD(rxmsg));
+			//printf("Encrypt:\n");
+
+			//hex_print((uint8_t *)_MAV_PAYLOAD(rxmsg), 0, rxmsg->len);
+			ChaCha20XOR(key, 1, nonce, (uint8_t *)_MAV_PAYLOAD(rxmsg), (uint8_t *)decrypt, rxmsg->len);
+			memcpy((uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), decrypt, sizeof(decrypt));
+			//printf("Decrypt: %d\n", decrypt);
+			//hex_print((uint8_t *)decrypt, 0, rxmsg->len);
+#endif
+
+#ifdef TRIVIUM
+			//initialize key
+			uint8_t key[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99};
+
+			//initialize initial vector
+			uint8_t iv[] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23};
+
+			//encrypt payload
+			trivium((uint8_t *)key, (uint8_t *)iv, (uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), rxmsg->len);
+#endif
+
+#ifdef RABBIT
+
+			//128 bits key
+			const uint8_t key[] =
+				{
+					0x9f, 0x45, 0xd6, 0x2b,
+					0x00, 0xb3, 0xc5, 0x82,
+					0x10, 0x49, 0x2c, 0x95,
+					0x48, 0xff, 0x81, 0x48};
+			//64 bits iv
+			const uint8_t iv[] = {
+				0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
+
+			uint8_t decrypt[rxmsg->len];
+
+			/**
+				* false positives maybe
+				* 
+				* Error on message 71, 74, 76 (INVALID DATA TYPE USED AS PARAMETER VALUE on QgroundControl)
+				* 
+				* NOT EXIST     		   71
+				* MAVLINK_MSG_ID_VFR_HUD   74
+				* MAVLINK_MSG_ID COMMAND_LONG 76
+				*
+				**/
+			//decrypt payload
+			rabbit((uint8_t *)iv, (uint8_t *)key, (uint8_t *)_MAV_PAYLOAD(rxmsg), decrypt, rxmsg->len);
+			//copy encrypted payload in msg
+			memcpy((uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), decrypt, sizeof(decrypt));
+#endif
+#ifdef SIMON6496
+			uint8_t k[] = {0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0a, 0x0b, 0x10, 0x11, 0x12, 0x13};
+			uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0a, 0x0b};
+
+			Simon6496(nonce, k, (uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), rxmsg->len);
+#endif
+
+#ifdef SIMON64128
+			uint8_t k[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+			uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0a, 0x0b};
+
+			Simon64128(nonce, k, (uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), rxmsg->len);
+#endif
+
+#endif
+
 			status->parse_state = MAVLINK_PARSE_STATE_IDLE;
 			if (r_message != NULL)
 			{
