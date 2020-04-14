@@ -12,7 +12,7 @@
 #include "common.h"
 #include "utils.h"
 
-void SimonKeySchedule(uint32_t K[], uint32_t rk[])
+void inline SimonKeySchedule(uint32_t K[], uint32_t rk[])
 {
     uint32_t i, c = 0xfffffffc;
     uint64_t z = 0x7369f885192c0ef5LL;
@@ -26,7 +26,7 @@ void SimonKeySchedule(uint32_t K[], uint32_t rk[])
     }
 }
 
-void SimonEncrypt(uint32_t Pt[], uint32_t Ct[], uint32_t rk[])
+void inline SimonEncrypt(uint32_t Pt[], uint32_t Ct[], uint32_t rk[])
 {
     uint32_t i;
     Ct[1] = Pt[1];

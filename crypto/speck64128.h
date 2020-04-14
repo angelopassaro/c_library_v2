@@ -1,39 +1,38 @@
 #pragma once
 
-#ifndef _SIMON_64128_H
-#define _SIMON_64128_H
+#ifndef _SPECK_64128_H
+#define _SPECK_64128_H
 
 #define BLOCK_SIZE 8
 #define IV_LEN 8
 #define KEY_LEN 16
 #define KEY 4
-#define KEY_ROUND 44
+#define KEY_ROUND 27
 
 #include "common.h"
 #include "utils.h"
 
-void inline SimonKeySchedule(uint32_t K[], uint32_t rk[])
+void inline SpeckKeySchedule(uint32_t K[], uint32_t rk[])
 {
-    uint32_t i, c = 0xfffffffc;
-    uint64_t z = 0xfc2ce51207a635dbLL;
-    rk[0] = K[0];
-    rk[1] = K[1];
-    rk[2] = K[2];
-    rk[3] = K[3];
-    for (i = 4; i < 44; i++)
+    uint32_t i, D = K[3], C = K[2], B = K[1], A = K[0];
+    for (i = 0; i < 27;)
     {
-        rk[i] = c ^ (z & 1) ^ rk[i - 4] ^ ROTR32(rk[i - 1], 3) ^ rk[i - 3] ^ ROTR32(rk[i - 1], 4) ^ ROTR32(rk[i - 3], 1);
-        z >>= 1;
+        rk[i] = A;
+        ER32(B, A, i++);
+        rk[i] = A;
+        ER32(C, A, i++);
+        rk[i] = A;
+        ER32(D, A, i++);
     }
 }
 
-void inline SimonEncrypt(uint32_t Pt[], uint32_t Ct[], uint32_t rk[])
+void inline SpeckEncrypt(uint32_t Pt[], uint32_t Ct[], uint32_t rk[])
 {
     uint32_t i;
-    Ct[1] = Pt[1];
     Ct[0] = Pt[0];
-    for (i = 0; i < 44;)
-        R32x2(Ct[1], Ct[0], rk[i++], rk[i++]);
+    Ct[1] = Pt[1];
+    for (i = 0; i < 27;)
+        ER32(Ct[1], Ct[0], rk[i++]);
 }
 
 /**
@@ -43,13 +42,13 @@ void inline SimonEncrypt(uint32_t Pt[], uint32_t Ct[], uint32_t rk[])
  * 3. XOR between encrypted nonce and plain
  * 4. Increment counter
  */
-MAVLINK_HELPER void Simon64128(uint8_t *nonce, uint8_t *key, uint8_t *plaintext, int length)
+MAVLINK_HELPER void Speck64128(uint8_t *nonce, uint8_t *key, uint8_t *plaintext, int length)
 {
     uint32_t K[KEY];
     uint32_t rk[KEY_ROUND];
 
     BytesToWords32(key, K, KEY_LEN);
-    SimonKeySchedule(K, rk);
+    SpeckKeySchedule(K, rk);
 
     int block = 0;
     int last_block;
@@ -70,7 +69,7 @@ MAVLINK_HELPER void Simon64128(uint8_t *nonce, uint8_t *key, uint8_t *plaintext,
             xored(counter, workingNonce, BLOCK_SIZE);
 
             BytesToWords32(workingNonce, Pt, BLOCK_SIZE);
-            SimonEncrypt(Pt, Ct, rk);
+            SpeckEncrypt(Pt, Ct, rk);
             Words32ToBytes(Ct, ct, 2);
 
             //STEP3
@@ -91,7 +90,7 @@ MAVLINK_HELPER void Simon64128(uint8_t *nonce, uint8_t *key, uint8_t *plaintext,
     //STEP 2
 
     BytesToWords32(workingNonce, Pt, BLOCK_SIZE);
-    SimonEncrypt(Pt, Ct, rk);
+    SpeckEncrypt(Pt, Ct, rk);
     Words32ToBytes(Ct, ct, 2);
 
     //STEP3
