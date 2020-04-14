@@ -9,8 +9,8 @@
 #define KEY 3
 #define KEY_ROUND 42
 
-#include "common.h"
 #include "utils.h"
+#include <string.h>
 
 void inline SimonKeySchedule(uint32_t K[], uint32_t rk[])
 {

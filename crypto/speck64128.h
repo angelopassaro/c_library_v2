@@ -9,8 +9,8 @@
 #define KEY 4
 #define KEY_ROUND 27
 
-#include "common.h"
 #include "utils.h"
+#include <string.h>
 
 void inline SpeckKeySchedule(uint32_t K[], uint32_t rk[])
 {
