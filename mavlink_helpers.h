@@ -20,8 +20,8 @@
 //#define TRIVIUM
 //#define RABBIT
 //#define SIMON6496
-#define SIMON64128
-//#define SPECK6496 no work
+//#define SIMON64128
+#define SPECK6496 //no work
 //#define SPECK64128
 
 #include "mavlink_sha256.h"

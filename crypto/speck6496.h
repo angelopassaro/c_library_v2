@@ -14,15 +14,13 @@
 
 void inline SpeckKeySchedule(uint32_t K[], uint32_t rk[])
 {
-    uint32_t i, D = K[3], C = K[2], B = K[1], A = K[0];
-    for (i = 0; i < 27;)
+    uint32_t i, C = K[2], B = K[1], A = K[0];
+    for (i = 0; i < 26;)
     {
         rk[i] = A;
         ER32(B, A, i++);
         rk[i] = A;
         ER32(C, A, i++);
-        rk[i] = A;
-        ER32(D, A, i++);
     }
 }
 void inline SpeckEncrypt(uint32_t Pt[], uint32_t Ct[], uint32_t rk[])
@@ -30,7 +28,7 @@ void inline SpeckEncrypt(uint32_t Pt[], uint32_t Ct[], uint32_t rk[])
     uint32_t i;
     Ct[0] = Pt[0];
     Ct[1] = Pt[1];
-    for (i = 0; i < 27;)
+    for (i = 0; i < 26;)
         ER32(Ct[1], Ct[0], rk[i++]);
 }
 
@@ -67,13 +65,13 @@ MAVLINK_HELPER void Speck6496(uint8_t *nonce, uint8_t *key, uint8_t *plaintext, 
             memcpy(workingNonce, nonce, BLOCK_SIZE);
             xored(counter, workingNonce, BLOCK_SIZE);
 
+            //STEP 2
             BytesToWords32(workingNonce, Pt, BLOCK_SIZE);
             SpeckEncrypt(Pt, Ct, rk);
             Words32ToBytes(Ct, ct, 2);
 
             //STEP3
             xored(ct, &plaintext[block], BLOCK_SIZE);
-
             //STEP 4
             uint8_t count[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
             byteAdd(counter, BLOCK_SIZE, count);
