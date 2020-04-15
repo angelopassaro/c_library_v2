@@ -21,7 +21,7 @@
 //#define RABBIT
 //#define SIMON6496
 //#define SIMON64128
-#define SPECK6496 //no work
+#define SPECK6496
 //#define SPECK64128
 
 #include "mavlink_sha256.h"
@@ -389,13 +389,8 @@ MAVLINK_HELPER uint16_t mavlink_finalize_message_buffer(mavlink_message_t *msg, 
 #ifdef SPECK6496
 		uint8_t k[] = {0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0a, 0x0b, 0x10, 0x11, 0x12, 0x13};
 		uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0a, 0x0b};
-		printf("Plain send\nMsgid: %d\n", msg->msgid);
-		hex_print((uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), 0, msg->len);
 
 		Speck6496(nonce, k, (uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), msg->len);
-
-		printf("enc send\n");
-		hex_print((uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), 0, msg->len);
 #endif
 
 #ifdef SPECK64128
@@ -579,14 +574,8 @@ MAVLINK_HELPER void _mav_finalize_message_chan_send(mavlink_channel_t chan, uint
 #ifdef SPECK6496
 		uint8_t k[] = {0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0a, 0x0b, 0x10, 0x11, 0x12, 0x13};
 		uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0a, 0x0b};
-		printf("Plain to send\nmsgid: %d \n", msgid);
-		printf("Plain send\n");
-		hex_print((uint8_t *)packet, 0, length);
 
 		Speck6496(nonce, k, (uint8_t *)packet, length);
-
-		printf("Enc send\n");
-		hex_print((uint8_t *)packet, 0, length);
 #endif
 
 #ifdef SPECK64128
@@ -1164,12 +1153,8 @@ MAVLINK_HELPER uint8_t mavlink_frame_char_buffer(mavlink_message_t *rxmsg,
 #ifdef SPECK6496
 				uint8_t k[] = {0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0a, 0x0b, 0x10, 0x11, 0x12, 0x13};
 				uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0a, 0x0b};
-				printf("Enc to rcv\nmsgid: %d \n", rxmsg->msgid);
 
-				hex_print((uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), 0, rxmsg->len);
 				Speck6496(nonce, k, (uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), rxmsg->len);
-				printf("rcv plain\n");
-				hex_print((uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), 0, rxmsg->len);
 #endif
 
 #ifdef SPECK64128
@@ -1399,7 +1384,6 @@ MAVLINK_HELPER unsigned int mavlink_get_proto_version(uint8_t chan)
 MAVLINK_HELPER uint8_t mavlink_parse_char(uint8_t chan, uint8_t c, mavlink_message_t *r_message, mavlink_status_t *r_mavlink_status)
 {
 	uint8_t msg_received = mavlink_frame_char(chan, c, r_message, r_mavlink_status);
-	//hex_print((uint8_t *)_MAV_PAYLOAD(r_message), 0, r_message->len);
 	if (msg_received == MAVLINK_FRAMING_BAD_CRC ||
 		msg_received == MAVLINK_FRAMING_BAD_SIGNATURE)
 	{
