@@ -47,6 +47,51 @@ MAVLINK_HELPER void BytesToWords32(uint8_t bytes[], uint32_t words[], int numbyt
     }
 }
 
+/**
+* Convert  give words in bytes
+* words is a multiple of block size in words
+* bytes is a multiple of block size in bytes
+*  @param bytes  the input bytes
+*  @param word  the output word
+*  @param numbytes  the lenght of bytes
+*/
+MAVLINK_HELPER void Words64ToBytes(uint64_t words[], uint8_t bytes[], int numwords)
+{
+    int i, j = 0;
+    for (i = 0; i < numwords; i++)
+    {
+        bytes[j] = (uint8_t)words[i];
+        bytes[j + 1] = (uint8_t)(words[i] >> 8);
+        bytes[j + 2] = (uint8_t)(words[i] >> 16);
+        bytes[j + 3] = (uint8_t)(words[i] >> 24);
+        bytes[j + 4] = (uint8_t)(words[i] >> 32);
+        bytes[j + 5] = (uint8_t)(words[i] >> 40);
+        bytes[j + 6] = (uint8_t)(words[i] >> 48);
+        bytes[j + 7] = (uint8_t)(words[i] >> 56);
+        j += 8;
+    }
+}
+
+/**
+* Convert  give the bytes in words
+* words is a multiple of block size in words
+* bytes is a multiple of block size in bytes
+*
+*  @param bytes  the input bytes
+*  @param words  the output words
+*  @param numbytes  the lenght of bytes
+*/
+MAVLINK_HELPER void BytesToWords64(uint8_t bytes[], uint64_t words[], int numbytes)
+{
+    int i, j = 0;
+    for (i = 0; i < numbytes / 8; i++)
+    {
+        words[i] = (uint64_t)bytes[j] | ((uint64_t)bytes[j + 1] << 8) | ((uint64_t)bytes[j + 2] << 16) |
+                   ((uint64_t)bytes[j + 3] << 24) | ((uint64_t)bytes[j + 4] << 32) | ((uint64_t)bytes[j + 5] << 40) |
+                   ((uint64_t)bytes[j + 6] << 48) | ((uint64_t)bytes[j + 7] << 56);
+        j += 8;
+    }
+}
 /*
 * Support function for ctr mode
 */
