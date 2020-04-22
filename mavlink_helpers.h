@@ -22,7 +22,8 @@
 //#define SIMON6496
 //#define SIMON64128
 //#define SIMON128128
-#define SIMON128192
+//#define SIMON128192
+#define SIMON128256
 //#define SPECK6496
 //#define SPECK64128
 //#define SPECK128128
@@ -53,6 +54,9 @@
 #endif
 #ifdef SIMON128192
 #include "crypto/simon128192.h"
+#endif
+#ifdef SIMON128256
+#include "crypto/simon128256.h"
 #endif
 #ifdef SPECK6496
 #include "crypto/speck6496.h"
@@ -133,7 +137,8 @@ MAVLINK_HELPER uint8_t mavlink_sign_packet(mavlink_signing_t *signing,
 										   const uint8_t crc[2])
 {
 	mavlink_sha256_ctx ctx;
-	union {
+	union
+	{
 		uint64_t t64;
 		uint8_t t8[8];
 	} tstamp;
@@ -203,7 +208,8 @@ MAVLINK_HELPER bool mavlink_signature_check(mavlink_signing_t *signing,
 	}
 
 	// now check timestamp
-	union tstamp {
+	union tstamp
+	{
 		uint64_t t64;
 		uint8_t t8[8];
 	} tstamp;
@@ -414,6 +420,13 @@ MAVLINK_HELPER uint16_t mavlink_finalize_message_buffer(mavlink_message_t *msg, 
 		uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
 
 		Simon128192(nonce, k, (uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), msg->len);
+#endif
+
+#ifdef SIMON128256
+		uint8_t k[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+		uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+
+		Simon128256(nonce, k, (uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), msg->len);
 #endif
 
 #ifdef SPECK6496
@@ -642,6 +655,13 @@ MAVLINK_HELPER void _mav_finalize_message_chan_send(mavlink_channel_t chan, uint
 		Simon128192(nonce, k, (uint8_t *)packet, length);
 #endif
 
+#ifdef SIMON128256
+		uint8_t k[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+		uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+
+		Simon128256(nonce, k, (uint8_t *)packet, length);
+#endif
+
 #ifdef SPECK128128
 		uint8_t k[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
 		uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
@@ -790,7 +810,8 @@ MAVLINK_HELPER uint16_t mavlink_msg_to_send_buffer(uint8_t *buf, const mavlink_m
 	return header_len + 1 + 2 + (uint16_t)length + (uint16_t)signature_len;
 }
 
-union __mavlink_bitfield {
+union __mavlink_bitfield
+{
 	uint8_t uint8;
 	int8_t int8;
 	uint16_t uint16;
@@ -1235,6 +1256,13 @@ MAVLINK_HELPER uint8_t mavlink_frame_char_buffer(mavlink_message_t *rxmsg,
 				Simon128192(nonce, k, (uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), rxmsg->len);
 #endif
 
+#ifdef SIMON128256
+				uint8_t k[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+				uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+
+				Simon128256(nonce, k, (uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), rxmsg->len);
+#endif
+
 #ifdef SPECK6496
 				uint8_t k[] = {0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0a, 0x0b, 0x10, 0x11, 0x12, 0x13};
 				uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x08, 0x09, 0x0a, 0x0b};
@@ -1522,7 +1550,8 @@ MAVLINK_HELPER uint8_t put_bitfield_n_by_index(int32_t b, uint8_t bits, uint8_t 
 	int32_t v;
 	uint8_t i_bit_index, i_byte_index, curr_bits_n;
 #if MAVLINK_NEED_BYTE_SWAP
-	union {
+	union
+	{
 		int32_t i;
 		uint8_t b[4];
 	} bin, bout;
