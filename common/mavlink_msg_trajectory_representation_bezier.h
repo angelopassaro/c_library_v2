@@ -3,16 +3,16 @@
 
 #define MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER 333
 
-MAVPACKED(
+
 typedef struct __mavlink_trajectory_representation_bezier_t {
- uint64_t time_usec; /*< [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude the number.*/
+ uint64_t time_usec; /*< [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.*/
  float pos_x[5]; /*< [m] X-coordinate of bezier control points. Set to NaN if not being used*/
  float pos_y[5]; /*< [m] Y-coordinate of bezier control points. Set to NaN if not being used*/
  float pos_z[5]; /*< [m] Z-coordinate of bezier control points. Set to NaN if not being used*/
  float delta[5]; /*< [s] Bezier time horizon. Set to NaN if velocity/acceleration should not be incorporated*/
  float pos_yaw[5]; /*< [rad] Yaw. Set to NaN for unchanged*/
  uint8_t valid_points; /*<  Number of valid control points (up-to 5 points are possible)*/
-}) mavlink_trajectory_representation_bezier_t;
+} mavlink_trajectory_representation_bezier_t;
 
 #define MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_LEN 109
 #define MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_BEZIER_MIN_LEN 109
@@ -63,7 +63,7 @@ typedef struct __mavlink_trajectory_representation_bezier_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude the number.
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
  * @param valid_points  Number of valid control points (up-to 5 points are possible)
  * @param pos_x [m] X-coordinate of bezier control points. Set to NaN if not being used
  * @param pos_y [m] Y-coordinate of bezier control points. Set to NaN if not being used
@@ -107,7 +107,7 @@ static inline uint16_t mavlink_msg_trajectory_representation_bezier_pack(uint8_t
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude the number.
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
  * @param valid_points  Number of valid control points (up-to 5 points are possible)
  * @param pos_x [m] X-coordinate of bezier control points. Set to NaN if not being used
  * @param pos_y [m] Y-coordinate of bezier control points. Set to NaN if not being used
@@ -177,7 +177,7 @@ static inline uint16_t mavlink_msg_trajectory_representation_bezier_encode_chan(
  * @brief Send a trajectory_representation_bezier message
  * @param chan MAVLink channel to send the message
  *
- * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude the number.
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
  * @param valid_points  Number of valid control points (up-to 5 points are possible)
  * @param pos_x [m] X-coordinate of bezier control points. Set to NaN if not being used
  * @param pos_y [m] Y-coordinate of bezier control points. Set to NaN if not being used
@@ -268,7 +268,7 @@ static inline void mavlink_msg_trajectory_representation_bezier_send_buf(mavlink
 /**
  * @brief Get field time_usec from trajectory_representation_bezier message
  *
- * @return [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude the number.
+ * @return [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
  */
 static inline uint64_t mavlink_msg_trajectory_representation_bezier_get_time_usec(const mavlink_message_t* msg)
 {
