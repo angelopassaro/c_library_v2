@@ -6,6 +6,7 @@
 #include "mavlink_conversions.h"
 #include <stdio.h>
 #include "fourq.h"
+#include <time.h>
 
 #ifndef MAVLINK_HELPER
 #define MAVLINK_HELPER
@@ -41,11 +42,6 @@
 #endif
 
 #include "mavlink_sha256.h"
-
-//oppure extern const
-//static key_info_t keyManagement;
-static mavlink_device_certificate_t certifiateManagement;
-static key_info_t keysManagement[256];
 
 #ifdef MAVLINK_USE_CXX_NAMESPACE
 namespace mavlink
@@ -102,86 +98,91 @@ namespace mavlink
 		status->parse_state = MAVLINK_PARSE_STATE_IDLE;
 	}
 
-	MAVLINK_HELPER void setup(uint8_t sysid)
+	MAVLINK_HELPER mavlink_authority_certificate_t *mavlink_get_auth_certificate()
 	{
+		static mavlink_authority_certificate_t mavlink_auth_certificate;
+		return &mavlink_auth_certificate;
+	}
 
-		if (keysManagement[sysid].status == MAVLINK_KEY_EXCHANGE_EMPTY)
+	MAVLINK_HELPER mavlink_device_certificate_t *mavlink_get_device_certificate()
+	{
+		static mavlink_device_certificate_t mavlink_device_certificate;
+		return &mavlink_device_certificate;
+	}
+
+	MAVLINK_HELPER uint8_t mavlink_read_certificate(const char *path_to_certificate, int type)
+	{
+		FILE *fptr;		
+		fptr = fopen(path_to_certificate, "rb");
+
+		if (fptr == NULL)
 		{
-
-			uint8_t cert[sizeof(certifiateManagement.info)];
-			//GCS
-			if (sysid == 255)
-			{
-
-				printf("Instanziate keys and cert for GCS\n");
-				CompressedKeyGeneration(keysManagement[sysid].secret_key, keysManagement[sysid].public_key);
-				SchnorrQ_KeyGeneration(keysManagement[sysid].secret_key, keysManagement[sysid].public_key_auth);
-				certifiateManagement.info.device_id = sysid;
-				memcpy(certifiateManagement.info.public_key, keysManagement[sysid].public_key, sizeof(keysManagement[sysid].public_key));
-				memcpy(certifiateManagement.info.public_key_auth, keysManagement[sysid].public_key_auth, sizeof(keysManagement[sysid].public_key_auth));
-				printf("\nID: %d\n", sysid);
-				memcpy(&cert, &certifiateManagement.info, sizeof(certifiateManagement.info));
-				SchnorrQ_Sign(keysManagement[sysid].secret_key, keysManagement[sysid].public_key_auth, cert, sizeof(cert), certifiateManagement.sign);
-				keysManagement[sysid].status = MAVLINK_KEY_EXCHANGE_PENDING;
-
-				printf("KEY Management\n");
-				printf("Public key: ");
-				hex_print(keysManagement[sysid].public_key, 0, 32);
-				printf("Public key auth: ");
-				hex_print(keysManagement[sysid].public_key_auth, 0, 32);
-				printf("Secret  key: ");
-				hex_print(keysManagement[sysid].secret_key, 0, 32);
-
-				printf("Certificate Management\n");
-				printf("Public  key: ");
-				hex_print(certifiateManagement.info.public_key, 0, 32);
-				printf("Public key auth: ");
-				hex_print(certifiateManagement.info.public_key_auth, 0, 32);
-				printf("Sign: ");
-				hex_print(certifiateManagement.sign, 0, 32);
-
-				printf("Certificate\n");
-				hex_print(cert, 0, 65);
+			return 1;
+		}
+		else
+		{
+			int result = 0;
+			if(type == MAVLINK_DEVICE_CERTIFICATE){
+		    	mavlink_device_certificate_t *certificate = mavlink_get_device_certificate();
+				hex_print((uint8_t *)certificate,0,sizeof(info_t));
+				result = fread(certificate, sizeof(mavlink_device_certificate_t), 1, fptr);
 			}
-			else
+			if(type == MAVLINK_GCS_CERTIFICATE){
+				mavlink_authority_certificate_t *certificate = mavlink_get_auth_certificate();
+				result = fread(certificate, sizeof(mavlink_authority_certificate_t), 1, fptr);
+			}
+			if (result <= 0)
 			{
-				//UAV
-				printf("Instanziate keys and cert for UAV\n");
-				CompressedKeyGeneration(keysManagement[sysid].secret_key, keysManagement[sysid].public_key);
-				certifiateManagement.info.device_id = sysid;
-				memcpy(certifiateManagement.info.public_key, keysManagement[sysid].public_key, sizeof(keysManagement[sysid].public_key));
-				printf("\nID: %d\n", sysid);
-				memcpy(&cert, &certifiateManagement.info, sizeof(certifiateManagement.info));
-				keysManagement[sysid].status = MAVLINK_KEY_EXCHANGE_PENDING;
+				return 1;
+			}
+			return 0;
+		}
+	}
 
-				printf("KEY Management\n");
-				printf("Public key: ");
-				hex_print(keysManagement[sysid].public_key, 0, 32);
-				printf("Public key auth: ");
-				hex_print(keysManagement[sysid].public_key_auth, 0, 32);
-				printf("Secret  key: ");
-				hex_print(keysManagement[sysid].secret_key, 0, 32);
+    /*
+		Check if certificate is valid
+		date and sign
+	*/
+	MAVLINK_HELPER unsigned int mavlink_check_remote_certificate(float start, float end, uint8_t *remote_certificate, const unsigned char * sign, int type){
+		time_t now;
+		unsigned int valid = false;
+		
+		time(&now);
 
-				printf("Certificate Management\n");
-				printf("Public  key: ");
-				hex_print(certifiateManagement.info.public_key, 0, 32);
-				printf("Public key auth: ");
-				hex_print(certifiateManagement.info.public_key_auth, 0, 32);
-				printf("Sign: ");
-				hex_print(certifiateManagement.sign, 0, 32);
-
-				printf("Certificate\n");
-				hex_print(cert, 0, 65);
+		if((int)start <= (int)now && (int)now <= (int)end ){
+			if(type == MAVLINK_GCS_CERTIFICATE){
+			mavlink_authority_certificate_t *certificate = mavlink_get_auth_certificate();
+			SchnorrQ_Verify(certificate->public_key_auth, remote_certificate, sizeof(info_t), sign, &valid);
+			}
+			if(type == MAVLINK_DEVICE_CERTIFICATE){
+			mavlink_device_certificate_t *certificate = mavlink_get_device_certificate();
+			SchnorrQ_Verify(certificate->info.public_key_auth, remote_certificate, sizeof(info_t), sign, &valid);
+			}
+			if(valid){
+				printf("OK\n");
 			}
 		}
-		else if (keysManagement[sysid].status == MAVLINK_KEY_EXCHANGE_PENDING)
-		{
-			//SIGN
-		}
-		else if (keysManagement[sysid].status == MAVLINK_KEY_EXCHANGE_COMPLETE)
-		{
-			//NOTHING
-		}
+		return valid;
+	}
+
+	MAVLINK_HELPER key_status_t *mavlink_get_remote_key(int id)
+	{
+		static key_status_t remote_keys[256];
+		return &remote_keys[id];
+	}
+
+	MAVLINK_HELPER void mavlink_set_remote_key(int id, uint8_t *public_key)
+	{
+		key_status_t *remote_key = mavlink_get_remote_key(id);
+		mavlink_device_certificate_t *device_certificate = mavlink_get_device_certificate();
+		CompressedSecretAgreement(device_certificate->secret_key, public_key, remote_key->shared_key);
+		remote_key->status = MAVLINK_KEY_EXCHANGE_COMPLETE;
+	}
+
+	MAVLINK_HELPER bool mavlink_is_set_remote_key(int id)
+	{
+		key_status_t *key = mavlink_get_remote_key(id);
+		return key->status;
 	}
 
 	/**
@@ -368,10 +369,6 @@ namespace mavlink
 		{
 			msg->incompat_flags |= MAVLINK_IFLAG_SIGNED;
 		}
-#ifdef ENCRYPTION
-		printf("SETTA FLAG\n");
-		msg->incompat_flags |= MAVLINK_IFLAG_CERT;
-#endif
 		msg->compat_flags = 0;
 		msg->seq = status->current_tx_seq;
 		status->current_tx_seq = status->current_tx_seq + 1;
@@ -396,12 +393,13 @@ namespace mavlink
 			buf[7] = msg->msgid & 0xFF;
 			buf[8] = (msg->msgid >> 8) & 0xFF;
 			buf[9] = (msg->msgid >> 16) & 0xFF;
-			printf("FLAG: %d\n", buf[2]);
 		}
+		/**
+
 #ifdef ENCRYPTION
-		if (msg->msgid != 0 && keysManagement[system_id].status != MAVLINK_KEY_EXCHANGE_COMPLETE)
+		if (msg->msgid != 0)
 		{
-#ifdef CHACHA20ypt
+#ifdef CHACHA20
 			uint8_t key[] = {
 				0x00, 0x01, 0x02, 0x03,
 				0x04, 0x05, 0x06, 0x07,
@@ -525,13 +523,8 @@ namespace mavlink
 			Speck128256(nonce, k, (uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), msg->len);
 #endif
 		}
-		else
-		{
-			setup(system_id);
-			memcpy(&msg->certificate, &certifiateManagement, sizeof(certifiateManagement));
-			hex_print(msg->certificate, 0, sizeof(certifiateManagement));
-		}
 #endif
+**/
 		uint16_t checksum = crc_calculate(&buf[1], header_len - 1);
 		crc_accumulate_buffer(&checksum, _MAV_PAYLOAD(msg), msg->len);
 		crc_accumulate(crc_extra, &checksum);
@@ -549,7 +542,7 @@ namespace mavlink
 								(const uint8_t *)_MAV_PAYLOAD(msg) + (uint16_t)msg->len);
 		}
 
-		return msg->len + header_len + 2 + signature_len + MAVLINK_CERTIFICATE_LEN;
+		return msg->len + header_len + 2 + signature_len;
 	}
 
 	MAVLINK_HELPER uint16_t mavlink_finalize_message_chan(mavlink_message_t *msg, uint8_t system_id, uint8_t component_id,
@@ -618,10 +611,6 @@ namespace mavlink
 			{
 				incompat_flags |= MAVLINK_IFLAG_SIGNED;
 			}
-#ifdef ENCRYPTION
-//			printf("SETTA FLAG\n");
-//			incompat_flags |= MAVLINK_IFLAG_CERT;
-#endif
 			length = _mav_trim_payload(packet, length);
 			buf[0] = MAVLINK_STX;
 			buf[1] = length;
@@ -633,10 +622,10 @@ namespace mavlink
 			buf[7] = msgid & 0xFF;
 			buf[8] = (msgid >> 8) & 0xFF;
 			buf[9] = (msgid >> 16) & 0xFF;
-			printf("FLAG: %d\n", buf[2]);
 		}
+		/**
 #ifdef ENCRYPTION
-		if (msgid != 0 && keysManagement[mavlink_system.sysid].status != MAVLINK_KEY_EXCHANGE_COMPLETE)
+		if (msgid != 0)
 		{
 #ifdef CHACHA20
 			//set key
@@ -754,6 +743,7 @@ namespace mavlink
 			uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
 
 			Speck128192(nonce, k, (uint8_t *)packet, length);
+
 #endif
 
 #ifdef SPECK128256
@@ -763,11 +753,8 @@ namespace mavlink
 			Speck128256(nonce, k, (uint8_t *)packet, length);
 #endif
 		}
-		else
-		{
-			setup(mavlink_system.sysid);
-		}
 #endif
+**/
 		status->current_tx_seq++;
 		checksum = crc_calculate((const uint8_t *)&buf[1], header_len);
 		crc_accumulate_buffer(&checksum, packet, length);
@@ -781,7 +768,7 @@ namespace mavlink
 			signature_len = mavlink_sign_packet(status->signing, signature, buf, header_len + 1,
 												(const uint8_t *)packet, length, ck);
 		}
-		MAVLINK_START_UART_SEND(chan, header_len + 3 + (uint16_t)length + (uint16_t)signature_len + (uint16_t)MAVLINK_CERTIFICATE_LEN);
+		MAVLINK_START_UART_SEND(chan, header_len + 3 + (uint16_t)length + (uint16_t)signature_len);
 		_mavlink_send_uart(chan, (const char *)buf, header_len + 1);
 		_mavlink_send_uart(chan, packet, length);
 		_mavlink_send_uart(chan, (const char *)ck, 2);
@@ -789,17 +776,7 @@ namespace mavlink
 		{
 			_mavlink_send_uart(chan, (const char *)signature, signature_len);
 		}
-		if (keysManagement[mavlink_system.sysid].status != 0)
-		{
-			//OK
-			uint8_t cert[MAVLINK_CERTIFICATE_LEN];
-			memcpy(&cert, &certifiateManagement, MAVLINK_CERTIFICATE_LEN);
-			printf("SENDING CERT...\n");
-			hex_print(cert, 0, MAVLINK_CERTIFICATE_LEN);
-
-			_mavlink_send_uart(chan, (const char *)cert, MAVLINK_CERTIFICATE_LEN);
-		}
-		MAVLINK_END_UART_SEND(chan, header_len + 3 + (uint16_t)length + (uint16_t)signature_len + (uint16_t)MAVLINK_CERTIFICATE_LEN);
+		MAVLINK_END_UART_SEND(chan, header_len + 3 + (uint16_t)length + (uint16_t)signature_len);
 	}
 
 	/**
@@ -870,7 +847,6 @@ namespace mavlink
 		uint8_t *ck;
 		uint8_t length = msg->len;
 
-		printf("mavlink_msg_to_send_buffer\n");
 		if (msg->magic == MAVLINK_STX_MAVLINK1)
 		{
 			signature_len = 0;
@@ -1026,10 +1002,10 @@ namespace mavlink
 		int bufferIndex = 0;
 
 		status->msg_received = MAVLINK_FRAMING_INCOMPLETE;
-		//	if (rxmsg->msgid != 0 && keyManagement.status != MAVLINK_KEY_EXCHANGE_COMPLETE)
-		//	{
+
 		switch (status->parse_state)
 		{
+
 		case MAVLINK_PARSE_STATE_UNINIT:
 		case MAVLINK_PARSE_STATE_IDLE:
 			if (c == MAVLINK_STX)
@@ -1088,7 +1064,6 @@ namespace mavlink
 			if ((rxmsg->incompat_flags & ~MAVLINK_IFLAG_MASK) != 0)
 			{
 				// message includes an incompatible feature flag
-				printf("\nQUI FLAG?\n");
 				_mav_parse_error(status);
 				status->msg_received = 0;
 				status->parse_state = MAVLINK_PARSE_STATE_IDLE;
@@ -1229,7 +1204,6 @@ namespace mavlink
 
 			if (rxmsg->incompat_flags & MAVLINK_IFLAG_SIGNED)
 			{
-				printf("QUA??????\n");
 				status->parse_state = MAVLINK_PARSE_STATE_SIGNATURE_WAIT;
 				status->signature_wait = MAVLINK_SIGNATURE_BLOCK_LEN;
 
@@ -1237,15 +1211,8 @@ namespace mavlink
 				// otherwise we can end up with garbage flagged as valid.
 				if (status->msg_received != MAVLINK_FRAMING_BAD_CRC)
 				{
-					printf("QUI???????\n");
 					status->msg_received = MAVLINK_FRAMING_INCOMPLETE;
 				}
-			}
-			else if (rxmsg->incompat_flags & MAVLINK_IFLAG_CERT)
-			{
-				printf("\nSPERO QUI\n");
-				status->parse_state = MAVLINK_PARSE_STATE_CERT_WAIT;
-				status->certificate_wait = MAVLINK_CERTIFICATE_LEN;
 			}
 			else
 			{
@@ -1260,7 +1227,7 @@ namespace mavlink
 						status->msg_received = MAVLINK_FRAMING_BAD_SIGNATURE;
 					}
 				}
-
+				/**
 #ifdef ENCRYPTION
 				if (rxmsg->msgid != 0)
 				{
@@ -1276,17 +1243,7 @@ namespace mavlink
 						0x1c, 0x1d, 0x1e, 0x1f};
 					uint8_t nonce[] = {
 						0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x4a, 0x00, 0x00, 0x00, 0x00};
-					/**
-				 * false positives maybe
-				 * 
-				 * Error on message 119, 120, 122, 124 (INVALID DATA TYPE USED AS PARAMETER VALUE on QgroundControl)
-				 * 
-				 * MAVLINK_MSG_ID_LOG_REQUEST_DATA 119
-				 * MAVLINK_MSG_ID_LOG_DATA 120
-				 * MAVLINK_MSG_ID_LOG_REQUEST_END 122
-				 * MAVLINK_MSG_ID_GPS2_RAW 124
-				 *
-				 **/
+
 					uint8_t decrypt[rxmsg->len];
 					//printf("Length: %d\tpayload: %s\n", rxmsg->len, _MAV_PAYLOAD(rxmsg));
 					//printf("Encrypt:\n");
@@ -1323,17 +1280,6 @@ namespace mavlink
 						0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
 
 					uint8_t decrypt[rxmsg->len];
-
-					/**
-				* false positives maybe
-				* 
-				* Error on message 71, 74, 76 (INVALID DATA TYPE USED AS PARAMETER VALUE on QgroundControl)
-				* 
-				* NOT EXIST     		   71
-				* MAVLINK_MSG_ID_VFR_HUD   74
-				* MAVLINK_MSG_ID COMMAND_LONG 76
-				*
-				**/
 					//decrypt payload
 					rabbit((uint8_t *)iv, (uint8_t *)key, (uint8_t *)_MAV_PAYLOAD(rxmsg), decrypt, rxmsg->len);
 					//copy encrypted payload in msg
@@ -1410,41 +1356,12 @@ namespace mavlink
 #endif
 				}
 #endif
+				 **/
 
 				status->parse_state = MAVLINK_PARSE_STATE_IDLE;
 				if (r_message != NULL)
 				{
 					memcpy(r_message, rxmsg, sizeof(mavlink_message_t));
-				}
-			}
-			break;
-		case MAVLINK_PARSE_STATE_CERT_WAIT:
-			rxmsg->certificate[MAVLINK_CERTIFICATE_LEN - status->certificate_wait] = c;
-			status->certificate_wait--;
-			// Got Cert
-			if (status->certificate_wait == 0)
-			{
-				//verify cert
-				unsigned int valid = false;
-				uint8_t cert[sizeof(certifiateManagement.info)];
-
-				memcpy(&cert, &certifiateManagement.info, sizeof(certifiateManagement.info));
-
-				SchnorrQ_Verify(keysManagement[rxmsg->sysid].public_key_auth, cert, sizeof(certifiateManagement.info), certifiateManagement.sign, &valid);
-				if (valid && keysManagement[rxmsg->sysid].status == MAVLINK_KEY_EXCHANGE_PENDING)
-				{
-					//Compute shared key
-					ECCRYPTO_STATUS Status = ECCRYPTO_SUCCESS;
-					Status = CompressedSecretAgreement(keysManagement[rxmsg->sysid].secret_key, certifiateManagement.info.public_key, keysManagement[rxmsg->sysid].shared_key);
-					if (Status == ECCRYPTO_SUCCESS)
-					{
-						keysManagement[rxmsg->sysid].status = MAVLINK_KEY_EXCHANGE_COMPLETE;
-					}
-					else
-					{
-						printf("SPERIAMO DI NO\n");
-						//handle fail with new state
-					}
 				}
 			}
 			break;
@@ -1525,14 +1442,6 @@ namespace mavlink
 				r_message->checksum = rxmsg->ck[0] | (rxmsg->ck[1] << 8);
 			}
 		}
-		//QUI FORSE NON VA BENE
-		//	}
-		//		else
-		//		{
-		//			printf("3-3\n");
-		//			setup(rxmsg->sysid);
-		//			hex_print(rxmsg->certificate, 0, MAVLINK_CERTIFICATE_LEN);
-		//		}
 
 		return status->msg_received;
 	}
@@ -1816,8 +1725,6 @@ void comm_send_ch(mavlink_channel_t chan, uint8_t ch)
 
 	MAVLINK_HELPER void _mavlink_send_uart(mavlink_channel_t chan, const char *buf, uint16_t len)
 	{
-		printf("_mavlink_send_uart\n");
-		hex_print((uint8_t *)buf, 0, len);
 #ifdef MAVLINK_SEND_UART_BYTES
 		/* this is the more efficient approach, if the platform
 	   defines it */
