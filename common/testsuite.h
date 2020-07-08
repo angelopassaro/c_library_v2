@@ -429,6 +429,69 @@ static void mavlink_test_auth_key(uint8_t system_id, uint8_t component_id, mavli
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 }
 
+static void mavlink_test_certificate(uint8_t system_id, uint8_t component_id, mavlink_message_t *last_msg)
+{
+#ifdef MAVLINK_STATUS_FLAG_OUT_MAVLINK1
+    mavlink_status_t *status = mavlink_get_channel_status(MAVLINK_COMM_0);
+        if ((status->flags & MAVLINK_STATUS_FLAG_OUT_MAVLINK1) && MAVLINK_MSG_ID_CERTIFICATE >= 256) {
+            return;
+        }
+#endif
+    mavlink_message_t msg;
+        uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
+        uint16_t i;
+    mavlink_certificate_t packet_in = {
+        17.0,45.0,29,96,"KLMNOPQRSTUVWXYZABC","EFGHIJKLMNOPQRSTUVW","YZABCDEFGHIJKLMNOPQ",{ 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118 },{ 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214 },{ 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86 }
+    };
+    mavlink_certificate_t packet1, packet2;
+        memset(&packet1, 0, sizeof(packet1));
+        packet1.start_time = packet_in.start_time;
+        packet1.end_time = packet_in.end_time;
+        packet1.seq_number = packet_in.seq_number;
+        packet1.device_id = packet_in.device_id;
+        
+        mav_array_memcpy(packet1.device_name, packet_in.device_name, sizeof(char)*20);
+        mav_array_memcpy(packet1.subject, packet_in.subject, sizeof(char)*20);
+        mav_array_memcpy(packet1.issuer, packet_in.issuer, sizeof(char)*20);
+        mav_array_memcpy(packet1.public_key, packet_in.public_key, sizeof(uint8_t)*32);
+        mav_array_memcpy(packet1.public_key_auth, packet_in.public_key_auth, sizeof(uint8_t)*32);
+        mav_array_memcpy(packet1.sign, packet_in.sign, sizeof(uint8_t)*64);
+        
+#ifdef MAVLINK_STATUS_FLAG_OUT_MAVLINK1
+        if (status->flags & MAVLINK_STATUS_FLAG_OUT_MAVLINK1) {
+           // cope with extensions
+           memset(MAVLINK_MSG_ID_CERTIFICATE_MIN_LEN + (char *)&packet1, 0, sizeof(packet1)-MAVLINK_MSG_ID_CERTIFICATE_MIN_LEN);
+        }
+#endif
+        memset(&packet2, 0, sizeof(packet2));
+    mavlink_msg_certificate_encode(system_id, component_id, &msg, &packet1);
+    mavlink_msg_certificate_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+    mavlink_msg_certificate_pack(system_id, component_id, &msg , packet1.seq_number , packet1.device_id , packet1.device_name , packet1.subject , packet1.issuer , packet1.public_key , packet1.public_key_auth , packet1.start_time , packet1.end_time , packet1.sign );
+    mavlink_msg_certificate_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+    mavlink_msg_certificate_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.seq_number , packet1.device_id , packet1.device_name , packet1.subject , packet1.issuer , packet1.public_key , packet1.public_key_auth , packet1.start_time , packet1.end_time , packet1.sign );
+    mavlink_msg_certificate_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+        mavlink_msg_to_send_buffer(buffer, &msg);
+        for (i=0; i<mavlink_msg_get_send_buffer_length(&msg); i++) {
+            comm_send_ch(MAVLINK_COMM_0, buffer[i]);
+        }
+    mavlink_msg_certificate_decode(last_msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+        
+        memset(&packet2, 0, sizeof(packet2));
+    mavlink_msg_certificate_send(MAVLINK_COMM_1 , packet1.seq_number , packet1.device_id , packet1.device_name , packet1.subject , packet1.issuer , packet1.public_key , packet1.public_key_auth , packet1.start_time , packet1.end_time , packet1.sign );
+    mavlink_msg_certificate_decode(last_msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+}
+
 static void mavlink_test_set_mode(uint8_t system_id, uint8_t component_id, mavlink_message_t *last_msg)
 {
 #ifdef MAVLINK_STATUS_FLAG_OUT_MAVLINK1
@@ -9808,6 +9871,7 @@ static void mavlink_test_common(uint8_t system_id, uint8_t component_id, mavlink
     mavlink_test_change_operator_control(system_id, component_id, last_msg);
     mavlink_test_change_operator_control_ack(system_id, component_id, last_msg);
     mavlink_test_auth_key(system_id, component_id, last_msg);
+    mavlink_test_certificate(system_id, component_id, last_msg);
     mavlink_test_set_mode(system_id, component_id, last_msg);
     mavlink_test_param_request_read(system_id, component_id, last_msg);
     mavlink_test_param_request_list(system_id, component_id, last_msg);
