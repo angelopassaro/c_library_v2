@@ -46,12 +46,11 @@ MAVLINK_HELPER void mavlink_reset_channel_status(uint8_t chan);
 
 MAVLINK_HELPER mavlink_device_certificate_t *mavlink_get_device_certificate();
 MAVLINK_HELPER mavlink_authority_certificate_t *mavlink_get_auth_certificate();
-MAVLINK_HELPER uint8_t mavlink_read_certificate(const char *path_to_certificate, int type);
+MAVLINK_HELPER uint8_t mavlink_read_certificate(const char *path_to_certificate);
 MAVLINK_HELPER key_status_t *mavlink_get_remote_key(int id);
 MAVLINK_HELPER void mavlink_set_remote_key(int id, uint8_t *public_key);
 MAVLINK_HELPER bool mavlink_is_set_remote_key(int id);
-MAVLINK_HELPER unsigned int mavlink_check_remote_certificate(float start, float end, uint8_t *remote_certificate, const unsigned char * sign, int type);
-
+MAVLINK_HELPER unsigned int mavlink_check_remote_certificate(float start, float end, uint8_t *remote_certificate, const unsigned char *sign);
 
 MAVLINK_HELPER uint16_t mavlink_finalize_message_chan(mavlink_message_t *msg, uint8_t system_id, uint8_t component_id,
 													  uint8_t chan, uint8_t min_length, uint8_t length, uint8_t crc_extra);
