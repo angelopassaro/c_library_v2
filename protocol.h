@@ -45,7 +45,6 @@ MAVLINK_HELPER mavlink_status_t *mavlink_get_channel_status(uint8_t chan);
 MAVLINK_HELPER void mavlink_reset_channel_status(uint8_t chan);
 
 MAVLINK_HELPER mavlink_device_certificate_t *mavlink_get_device_certificate();
-MAVLINK_HELPER mavlink_authority_certificate_t *mavlink_get_auth_certificate();
 MAVLINK_HELPER uint8_t mavlink_read_certificate(const char *path_to_certificate);
 MAVLINK_HELPER key_status_t *mavlink_get_remote_key(int id);
 MAVLINK_HELPER void mavlink_set_remote_key(int id, uint8_t *public_key);

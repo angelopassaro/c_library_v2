@@ -99,12 +99,6 @@ namespace mavlink
 		status->parse_state = MAVLINK_PARSE_STATE_IDLE;
 	}
 
-	MAVLINK_HELPER mavlink_authority_certificate_t *mavlink_get_auth_certificate()
-	{
-		static mavlink_authority_certificate_t mavlink_auth_certificate;
-		return &mavlink_auth_certificate;
-	}
-
 	MAVLINK_HELPER mavlink_device_certificate_t *mavlink_get_device_certificate()
 	{
 		static mavlink_device_certificate_t mavlink_device_certificate;
