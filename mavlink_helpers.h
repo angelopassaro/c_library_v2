@@ -160,7 +160,6 @@ namespace mavlink
 		tiger_ctx tiger;
 
 		CompressedSecretAgreement(device_certificate->secret_key, public_key, shared_key);
-		printf("ID: %d\nShared key: ", id);
 		hex_print(shared_key, 0, 32);
 
 		rhash_tiger_init(&tiger);
@@ -168,7 +167,6 @@ namespace mavlink
 		rhash_tiger_final(&tiger, remote_key->shared_key);
 
 		remote_key->status = MAVLINK_KEY_EXCHANGE_COMPLETE;
-		printf("Status in set: %d ID:%d\n",remote_key->status,id);
 		hex_print(remote_key->shared_key,0,24);
 
 	}
@@ -176,7 +174,6 @@ namespace mavlink
 	MAVLINK_HELPER bool mavlink_is_set_remote_key(int id)
 	{
 		key_status_t *key = mavlink_get_remote_key(id);
-		printf("Status: %d ID:%d\n",key->status,id);
 		hex_print(key->shared_key,0,24);
 		return key->status;
 	}
@@ -348,6 +345,8 @@ namespace mavlink
 		uint8_t signature_len = signing ? MAVLINK_SIGNATURE_BLOCK_LEN : 0;
 		uint8_t header_len = MAVLINK_CORE_HEADER_LEN + 1;
 		uint8_t buf[MAVLINK_CORE_HEADER_LEN + 1];
+		if(msg->msgid == 10000)
+		printf("certificato send\n");
 		if (mavlink1)
 		{
 			msg->magic = MAVLINK_STX_MAVLINK1;
