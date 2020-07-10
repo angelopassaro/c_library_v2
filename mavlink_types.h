@@ -38,6 +38,9 @@ namespace mavlink
 #define MAVLINK_KEY_EXCHANGE_EMPTY 0
 #define MAVLINK_KEY_EXCHANGE_COMPLETE 1
 
+#define MAVLINK_IV_EMPTY 0
+#define MAVLINK_IV_COMPLETE 1
+
 #define MAVLINK_DEVICE_CERTIFICATE 0
 #define MAVLINK_GCS_CERTIFICATE 1
 
@@ -335,6 +338,8 @@ namespace mavlink
     typedef struct key_s
     {
         uint8_t shared_key[24];
+        uint8_t iv[16];
+        int iv_set;
         int status;
     } key_status_t;
 
