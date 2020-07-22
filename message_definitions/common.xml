@@ -4342,7 +4342,7 @@
 
 
 
-       <!--  This message is for certificate -->
+   <!--  This message is for certificate -->
     <message id="10000" name="CERTIFICATE">
       <description>Certificate signed by the authority. If the certificate is trusted then the device can communicate with other devices.</description>
       <field type="uint8_t" name="seq_number" units="">Certificate sequent number</field>
@@ -4351,13 +4351,12 @@
       <field type="char[20]" name="subject" units="">Name of certification authority</field>
       <field type="char[20]" name="issuer" units="">Name of issuer</field>
       <field type="uint8_t[32]" name="public_key" units="rad">Public key of device</field>
-      <field type="uint8_t[32]" name="public_key_auth" units="rad">Public key of auth</field>
       <field type="float" name="start_time" units="">Certified start of validity</field>
       <field type="float" name="end_time" units="">Certified end of validity</field>
       <field type="uint8_t[64]" name="sign" units="rad">Sign of Authority</field>
     </message>
 
-        <!--  This message is for gcs certificate -->
+    <!--  This message is for gcs certificate -->
     <message id="10010" name="CERTIFICATE_GCS">
       <description>Certificate signed by the authority. If the certificate is trusted then the device can communicate with other devices.</description>
       <field type="uint8_t" name="seq_number" units="">Certificate sequent number</field>
@@ -4366,7 +4365,6 @@
       <field type="char[20]" name="subject" units="">Name of certification authority</field>
       <field type="char[20]" name="issuer" units="">Name of issuer</field>
       <field type="uint8_t[32]" name="public_key" units="rad">Public key of device</field>
-      <field type="uint8_t[32]" name="public_key_auth" units="rad">Public key of auth</field>
       <field type="uint8_t[16]" name="iv" units="rad">Initial vector</field>
       <field type="float" name="start_time" units="">Certified start of validity</field>
       <field type="float" name="end_time" units="">Certified end of validity</field>

@@ -147,7 +147,7 @@ namespace mavlink
 		{
 
 			mavlink_device_certificate_t *certificate = mavlink_get_device_certificate();
-			SchnorrQ_Verify(certificate->info.public_key_auth, remote_certificate, sizeof(info_t), sign, &valid);
+			SchnorrQ_Verify(certificate->public_key_auth, remote_certificate, sizeof(info_t), sign, &valid);
 		}
 		return valid;
 	}
