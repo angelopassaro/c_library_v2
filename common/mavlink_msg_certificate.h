@@ -3,7 +3,7 @@
 
 #define MAVLINK_MSG_ID_CERTIFICATE 10000
 
-
+MAVPACKED(
 typedef struct __mavlink_certificate_t {
  float start_time; /*<  Certified start of validity*/
  float end_time; /*<  Certified end of validity*/
@@ -13,56 +13,52 @@ typedef struct __mavlink_certificate_t {
  char subject[20]; /*<  Name of certification authority*/
  char issuer[20]; /*<  Name of issuer*/
  uint8_t public_key[32]; /*< [rad] Public key of device*/
- uint8_t public_key_auth[32]; /*< [rad] Public key of auth*/
  uint8_t sign[64]; /*< [rad] Sign of Authority*/
-} mavlink_certificate_t;
+}) mavlink_certificate_t;
 
-#define MAVLINK_MSG_ID_CERTIFICATE_LEN 198
-#define MAVLINK_MSG_ID_CERTIFICATE_MIN_LEN 198
-#define MAVLINK_MSG_ID_10000_LEN 198
-#define MAVLINK_MSG_ID_10000_MIN_LEN 198
+#define MAVLINK_MSG_ID_CERTIFICATE_LEN 166
+#define MAVLINK_MSG_ID_CERTIFICATE_MIN_LEN 166
+#define MAVLINK_MSG_ID_10000_LEN 166
+#define MAVLINK_MSG_ID_10000_MIN_LEN 166
 
-#define MAVLINK_MSG_ID_CERTIFICATE_CRC 65
-#define MAVLINK_MSG_ID_10000_CRC 65
+#define MAVLINK_MSG_ID_CERTIFICATE_CRC 202
+#define MAVLINK_MSG_ID_10000_CRC 202
 
 #define MAVLINK_MSG_CERTIFICATE_FIELD_DEVICE_NAME_LEN 20
 #define MAVLINK_MSG_CERTIFICATE_FIELD_SUBJECT_LEN 20
 #define MAVLINK_MSG_CERTIFICATE_FIELD_ISSUER_LEN 20
 #define MAVLINK_MSG_CERTIFICATE_FIELD_PUBLIC_KEY_LEN 32
-#define MAVLINK_MSG_CERTIFICATE_FIELD_PUBLIC_KEY_AUTH_LEN 32
 #define MAVLINK_MSG_CERTIFICATE_FIELD_SIGN_LEN 64
 
 #if MAVLINK_COMMAND_24BIT
 #define MAVLINK_MESSAGE_INFO_CERTIFICATE { \
     10000, \
     "CERTIFICATE", \
-    10, \
+    9, \
     {  { "seq_number", NULL, MAVLINK_TYPE_UINT8_T, 0, 8, offsetof(mavlink_certificate_t, seq_number) }, \
          { "device_id", NULL, MAVLINK_TYPE_UINT8_T, 0, 9, offsetof(mavlink_certificate_t, device_id) }, \
          { "device_name", NULL, MAVLINK_TYPE_CHAR, 20, 10, offsetof(mavlink_certificate_t, device_name) }, \
          { "subject", NULL, MAVLINK_TYPE_CHAR, 20, 30, offsetof(mavlink_certificate_t, subject) }, \
          { "issuer", NULL, MAVLINK_TYPE_CHAR, 20, 50, offsetof(mavlink_certificate_t, issuer) }, \
          { "public_key", NULL, MAVLINK_TYPE_UINT8_T, 32, 70, offsetof(mavlink_certificate_t, public_key) }, \
-         { "public_key_auth", NULL, MAVLINK_TYPE_UINT8_T, 32, 102, offsetof(mavlink_certificate_t, public_key_auth) }, \
          { "start_time", NULL, MAVLINK_TYPE_FLOAT, 0, 0, offsetof(mavlink_certificate_t, start_time) }, \
          { "end_time", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_certificate_t, end_time) }, \
-         { "sign", NULL, MAVLINK_TYPE_UINT8_T, 64, 134, offsetof(mavlink_certificate_t, sign) }, \
+         { "sign", NULL, MAVLINK_TYPE_UINT8_T, 64, 102, offsetof(mavlink_certificate_t, sign) }, \
          } \
 }
 #else
 #define MAVLINK_MESSAGE_INFO_CERTIFICATE { \
     "CERTIFICATE", \
-    10, \
+    9, \
     {  { "seq_number", NULL, MAVLINK_TYPE_UINT8_T, 0, 8, offsetof(mavlink_certificate_t, seq_number) }, \
          { "device_id", NULL, MAVLINK_TYPE_UINT8_T, 0, 9, offsetof(mavlink_certificate_t, device_id) }, \
          { "device_name", NULL, MAVLINK_TYPE_CHAR, 20, 10, offsetof(mavlink_certificate_t, device_name) }, \
          { "subject", NULL, MAVLINK_TYPE_CHAR, 20, 30, offsetof(mavlink_certificate_t, subject) }, \
          { "issuer", NULL, MAVLINK_TYPE_CHAR, 20, 50, offsetof(mavlink_certificate_t, issuer) }, \
          { "public_key", NULL, MAVLINK_TYPE_UINT8_T, 32, 70, offsetof(mavlink_certificate_t, public_key) }, \
-         { "public_key_auth", NULL, MAVLINK_TYPE_UINT8_T, 32, 102, offsetof(mavlink_certificate_t, public_key_auth) }, \
          { "start_time", NULL, MAVLINK_TYPE_FLOAT, 0, 0, offsetof(mavlink_certificate_t, start_time) }, \
          { "end_time", NULL, MAVLINK_TYPE_FLOAT, 0, 4, offsetof(mavlink_certificate_t, end_time) }, \
-         { "sign", NULL, MAVLINK_TYPE_UINT8_T, 64, 134, offsetof(mavlink_certificate_t, sign) }, \
+         { "sign", NULL, MAVLINK_TYPE_UINT8_T, 64, 102, offsetof(mavlink_certificate_t, sign) }, \
          } \
 }
 #endif
@@ -79,14 +75,13 @@ typedef struct __mavlink_certificate_t {
  * @param subject  Name of certification authority
  * @param issuer  Name of issuer
  * @param public_key [rad] Public key of device
- * @param public_key_auth [rad] Public key of auth
  * @param start_time  Certified start of validity
  * @param end_time  Certified end of validity
  * @param sign [rad] Sign of Authority
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_certificate_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
-                               uint8_t seq_number, uint8_t device_id, const char *device_name, const char *subject, const char *issuer, const uint8_t *public_key, const uint8_t *public_key_auth, float start_time, float end_time, const uint8_t *sign)
+                               uint8_t seq_number, uint8_t device_id, const char *device_name, const char *subject, const char *issuer, const uint8_t *public_key, float start_time, float end_time, const uint8_t *sign)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_CERTIFICATE_LEN];
@@ -98,8 +93,7 @@ static inline uint16_t mavlink_msg_certificate_pack(uint8_t system_id, uint8_t c
     _mav_put_char_array(buf, 30, subject, 20);
     _mav_put_char_array(buf, 50, issuer, 20);
     _mav_put_uint8_t_array(buf, 70, public_key, 32);
-    _mav_put_uint8_t_array(buf, 102, public_key_auth, 32);
-    _mav_put_uint8_t_array(buf, 134, sign, 64);
+    _mav_put_uint8_t_array(buf, 102, sign, 64);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_CERTIFICATE_LEN);
 #else
     mavlink_certificate_t packet;
@@ -111,7 +105,6 @@ static inline uint16_t mavlink_msg_certificate_pack(uint8_t system_id, uint8_t c
     mav_array_memcpy(packet.subject, subject, sizeof(char)*20);
     mav_array_memcpy(packet.issuer, issuer, sizeof(char)*20);
     mav_array_memcpy(packet.public_key, public_key, sizeof(uint8_t)*32);
-    mav_array_memcpy(packet.public_key_auth, public_key_auth, sizeof(uint8_t)*32);
     mav_array_memcpy(packet.sign, sign, sizeof(uint8_t)*64);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_CERTIFICATE_LEN);
 #endif
@@ -132,7 +125,6 @@ static inline uint16_t mavlink_msg_certificate_pack(uint8_t system_id, uint8_t c
  * @param subject  Name of certification authority
  * @param issuer  Name of issuer
  * @param public_key [rad] Public key of device
- * @param public_key_auth [rad] Public key of auth
  * @param start_time  Certified start of validity
  * @param end_time  Certified end of validity
  * @param sign [rad] Sign of Authority
@@ -140,7 +132,7 @@ static inline uint16_t mavlink_msg_certificate_pack(uint8_t system_id, uint8_t c
  */
 static inline uint16_t mavlink_msg_certificate_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
                                mavlink_message_t* msg,
-                                   uint8_t seq_number,uint8_t device_id,const char *device_name,const char *subject,const char *issuer,const uint8_t *public_key,const uint8_t *public_key_auth,float start_time,float end_time,const uint8_t *sign)
+                                   uint8_t seq_number,uint8_t device_id,const char *device_name,const char *subject,const char *issuer,const uint8_t *public_key,float start_time,float end_time,const uint8_t *sign)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_CERTIFICATE_LEN];
@@ -152,8 +144,7 @@ static inline uint16_t mavlink_msg_certificate_pack_chan(uint8_t system_id, uint
     _mav_put_char_array(buf, 30, subject, 20);
     _mav_put_char_array(buf, 50, issuer, 20);
     _mav_put_uint8_t_array(buf, 70, public_key, 32);
-    _mav_put_uint8_t_array(buf, 102, public_key_auth, 32);
-    _mav_put_uint8_t_array(buf, 134, sign, 64);
+    _mav_put_uint8_t_array(buf, 102, sign, 64);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_CERTIFICATE_LEN);
 #else
     mavlink_certificate_t packet;
@@ -165,7 +156,6 @@ static inline uint16_t mavlink_msg_certificate_pack_chan(uint8_t system_id, uint
     mav_array_memcpy(packet.subject, subject, sizeof(char)*20);
     mav_array_memcpy(packet.issuer, issuer, sizeof(char)*20);
     mav_array_memcpy(packet.public_key, public_key, sizeof(uint8_t)*32);
-    mav_array_memcpy(packet.public_key_auth, public_key_auth, sizeof(uint8_t)*32);
     mav_array_memcpy(packet.sign, sign, sizeof(uint8_t)*64);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_CERTIFICATE_LEN);
 #endif
@@ -184,7 +174,7 @@ static inline uint16_t mavlink_msg_certificate_pack_chan(uint8_t system_id, uint
  */
 static inline uint16_t mavlink_msg_certificate_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_certificate_t* certificate)
 {
-    return mavlink_msg_certificate_pack(system_id, component_id, msg, certificate->seq_number, certificate->device_id, certificate->device_name, certificate->subject, certificate->issuer, certificate->public_key, certificate->public_key_auth, certificate->start_time, certificate->end_time, certificate->sign);
+    return mavlink_msg_certificate_pack(system_id, component_id, msg, certificate->seq_number, certificate->device_id, certificate->device_name, certificate->subject, certificate->issuer, certificate->public_key, certificate->start_time, certificate->end_time, certificate->sign);
 }
 
 /**
@@ -198,7 +188,7 @@ static inline uint16_t mavlink_msg_certificate_encode(uint8_t system_id, uint8_t
  */
 static inline uint16_t mavlink_msg_certificate_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_certificate_t* certificate)
 {
-    return mavlink_msg_certificate_pack_chan(system_id, component_id, chan, msg, certificate->seq_number, certificate->device_id, certificate->device_name, certificate->subject, certificate->issuer, certificate->public_key, certificate->public_key_auth, certificate->start_time, certificate->end_time, certificate->sign);
+    return mavlink_msg_certificate_pack_chan(system_id, component_id, chan, msg, certificate->seq_number, certificate->device_id, certificate->device_name, certificate->subject, certificate->issuer, certificate->public_key, certificate->start_time, certificate->end_time, certificate->sign);
 }
 
 /**
@@ -211,14 +201,13 @@ static inline uint16_t mavlink_msg_certificate_encode_chan(uint8_t system_id, ui
  * @param subject  Name of certification authority
  * @param issuer  Name of issuer
  * @param public_key [rad] Public key of device
- * @param public_key_auth [rad] Public key of auth
  * @param start_time  Certified start of validity
  * @param end_time  Certified end of validity
  * @param sign [rad] Sign of Authority
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
-static inline void mavlink_msg_certificate_send(mavlink_channel_t chan, uint8_t seq_number, uint8_t device_id, const char *device_name, const char *subject, const char *issuer, const uint8_t *public_key, const uint8_t *public_key_auth, float start_time, float end_time, const uint8_t *sign)
+static inline void mavlink_msg_certificate_send(mavlink_channel_t chan, uint8_t seq_number, uint8_t device_id, const char *device_name, const char *subject, const char *issuer, const uint8_t *public_key, float start_time, float end_time, const uint8_t *sign)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_CERTIFICATE_LEN];
@@ -230,8 +219,7 @@ static inline void mavlink_msg_certificate_send(mavlink_channel_t chan, uint8_t 
     _mav_put_char_array(buf, 30, subject, 20);
     _mav_put_char_array(buf, 50, issuer, 20);
     _mav_put_uint8_t_array(buf, 70, public_key, 32);
-    _mav_put_uint8_t_array(buf, 102, public_key_auth, 32);
-    _mav_put_uint8_t_array(buf, 134, sign, 64);
+    _mav_put_uint8_t_array(buf, 102, sign, 64);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_CERTIFICATE, buf, MAVLINK_MSG_ID_CERTIFICATE_MIN_LEN, MAVLINK_MSG_ID_CERTIFICATE_LEN, MAVLINK_MSG_ID_CERTIFICATE_CRC);
 #else
     mavlink_certificate_t packet;
@@ -243,7 +231,6 @@ static inline void mavlink_msg_certificate_send(mavlink_channel_t chan, uint8_t 
     mav_array_memcpy(packet.subject, subject, sizeof(char)*20);
     mav_array_memcpy(packet.issuer, issuer, sizeof(char)*20);
     mav_array_memcpy(packet.public_key, public_key, sizeof(uint8_t)*32);
-    mav_array_memcpy(packet.public_key_auth, public_key_auth, sizeof(uint8_t)*32);
     mav_array_memcpy(packet.sign, sign, sizeof(uint8_t)*64);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_CERTIFICATE, (const char *)&packet, MAVLINK_MSG_ID_CERTIFICATE_MIN_LEN, MAVLINK_MSG_ID_CERTIFICATE_LEN, MAVLINK_MSG_ID_CERTIFICATE_CRC);
 #endif
@@ -257,7 +244,7 @@ static inline void mavlink_msg_certificate_send(mavlink_channel_t chan, uint8_t 
 static inline void mavlink_msg_certificate_send_struct(mavlink_channel_t chan, const mavlink_certificate_t* certificate)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-    mavlink_msg_certificate_send(chan, certificate->seq_number, certificate->device_id, certificate->device_name, certificate->subject, certificate->issuer, certificate->public_key, certificate->public_key_auth, certificate->start_time, certificate->end_time, certificate->sign);
+    mavlink_msg_certificate_send(chan, certificate->seq_number, certificate->device_id, certificate->device_name, certificate->subject, certificate->issuer, certificate->public_key, certificate->start_time, certificate->end_time, certificate->sign);
 #else
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_CERTIFICATE, (const char *)certificate, MAVLINK_MSG_ID_CERTIFICATE_MIN_LEN, MAVLINK_MSG_ID_CERTIFICATE_LEN, MAVLINK_MSG_ID_CERTIFICATE_CRC);
 #endif
@@ -271,7 +258,7 @@ static inline void mavlink_msg_certificate_send_struct(mavlink_channel_t chan, c
   is usually the receive buffer for the channel, and allows a reply to an
   incoming message with minimum stack space usage.
  */
-static inline void mavlink_msg_certificate_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint8_t seq_number, uint8_t device_id, const char *device_name, const char *subject, const char *issuer, const uint8_t *public_key, const uint8_t *public_key_auth, float start_time, float end_time, const uint8_t *sign)
+static inline void mavlink_msg_certificate_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint8_t seq_number, uint8_t device_id, const char *device_name, const char *subject, const char *issuer, const uint8_t *public_key, float start_time, float end_time, const uint8_t *sign)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char *buf = (char *)msgbuf;
@@ -283,8 +270,7 @@ static inline void mavlink_msg_certificate_send_buf(mavlink_message_t *msgbuf, m
     _mav_put_char_array(buf, 30, subject, 20);
     _mav_put_char_array(buf, 50, issuer, 20);
     _mav_put_uint8_t_array(buf, 70, public_key, 32);
-    _mav_put_uint8_t_array(buf, 102, public_key_auth, 32);
-    _mav_put_uint8_t_array(buf, 134, sign, 64);
+    _mav_put_uint8_t_array(buf, 102, sign, 64);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_CERTIFICATE, buf, MAVLINK_MSG_ID_CERTIFICATE_MIN_LEN, MAVLINK_MSG_ID_CERTIFICATE_LEN, MAVLINK_MSG_ID_CERTIFICATE_CRC);
 #else
     mavlink_certificate_t *packet = (mavlink_certificate_t *)msgbuf;
@@ -296,7 +282,6 @@ static inline void mavlink_msg_certificate_send_buf(mavlink_message_t *msgbuf, m
     mav_array_memcpy(packet->subject, subject, sizeof(char)*20);
     mav_array_memcpy(packet->issuer, issuer, sizeof(char)*20);
     mav_array_memcpy(packet->public_key, public_key, sizeof(uint8_t)*32);
-    mav_array_memcpy(packet->public_key_auth, public_key_auth, sizeof(uint8_t)*32);
     mav_array_memcpy(packet->sign, sign, sizeof(uint8_t)*64);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_CERTIFICATE, (const char *)packet, MAVLINK_MSG_ID_CERTIFICATE_MIN_LEN, MAVLINK_MSG_ID_CERTIFICATE_LEN, MAVLINK_MSG_ID_CERTIFICATE_CRC);
 #endif
@@ -369,16 +354,6 @@ static inline uint16_t mavlink_msg_certificate_get_public_key(const mavlink_mess
 }
 
 /**
- * @brief Get field public_key_auth from certificate message
- *
- * @return [rad] Public key of auth
- */
-static inline uint16_t mavlink_msg_certificate_get_public_key_auth(const mavlink_message_t* msg, uint8_t *public_key_auth)
-{
-    return _MAV_RETURN_uint8_t_array(msg, public_key_auth, 32,  102);
-}
-
-/**
  * @brief Get field start_time from certificate message
  *
  * @return  Certified start of validity
@@ -405,7 +380,7 @@ static inline float mavlink_msg_certificate_get_end_time(const mavlink_message_t
  */
 static inline uint16_t mavlink_msg_certificate_get_sign(const mavlink_message_t* msg, uint8_t *sign)
 {
-    return _MAV_RETURN_uint8_t_array(msg, sign, 64,  134);
+    return _MAV_RETURN_uint8_t_array(msg, sign, 64,  102);
 }
 
 /**
@@ -425,7 +400,6 @@ static inline void mavlink_msg_certificate_decode(const mavlink_message_t* msg, 
     mavlink_msg_certificate_get_subject(msg, certificate->subject);
     mavlink_msg_certificate_get_issuer(msg, certificate->issuer);
     mavlink_msg_certificate_get_public_key(msg, certificate->public_key);
-    mavlink_msg_certificate_get_public_key_auth(msg, certificate->public_key_auth);
     mavlink_msg_certificate_get_sign(msg, certificate->sign);
 #else
         uint8_t len = msg->len < MAVLINK_MSG_ID_CERTIFICATE_LEN? msg->len : MAVLINK_MSG_ID_CERTIFICATE_LEN;

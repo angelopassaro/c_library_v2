@@ -2889,7 +2889,7 @@ static void mavlink_test_efi_status(uint8_t system_id, uint8_t component_id, mav
         uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
         uint16_t i;
     mavlink_efi_status_t packet_in = {
-        17.0,45.0,73.0,101.0,129.0,157.0,185.0,213.0,241.0,269.0,297.0,325.0,353.0,161,388.0,416.0,444.0
+        17.0,45.0,73.0,101.0,129.0,157.0,185.0,213.0,241.0,269.0,297.0,325.0,353.0,381.0,409.0,437.0,197
     };
     mavlink_efi_status_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -2906,10 +2906,10 @@ static void mavlink_test_efi_status(uint8_t system_id, uint8_t component_id, mav
         packet1.cylinder_head_temperature = packet_in.cylinder_head_temperature;
         packet1.ignition_timing = packet_in.ignition_timing;
         packet1.injection_time = packet_in.injection_time;
-        packet1.health = packet_in.health;
         packet1.exhaust_gas_temperature = packet_in.exhaust_gas_temperature;
         packet1.throttle_out = packet_in.throttle_out;
         packet1.pt_compensation = packet_in.pt_compensation;
+        packet1.health = packet_in.health;
         
         
 #ifdef MAVLINK_STATUS_FLAG_OUT_MAVLINK1
