@@ -9,6 +9,7 @@
 #include "tiger.h"
 #include <time.h>
 
+
 #ifndef MAVLINK_HELPER
 #define MAVLINK_HELPER
 #endif
@@ -22,27 +23,79 @@
 /*
 *include Crypto
 */
+#ifdef TESTENCRYPTION
+#ifdef CHACHA20
+#define CHACHA20
+#endif
+
+#ifdef RABBIT
+#define RABBIT
+#endif
+
+#ifdef TRIVIUM
+#define TRIVIUM
+#endif
+
+#ifdef SIMON6496
+#define SIMON6496
+#endif
+
+#ifdef SIMON64128
+#define SIMON64128
+#endif
+
+#ifdef SIMON128128
+#define SIMON128128
+#endif
+
+#ifdef SIMON128192
+#define SIMON128192
+#endif
+
+#ifdef SIMON128256
+#define SIMON128256
+#endif
+
+#ifdef SPECK6496
+#define SPECK6496
+#endif
+
+#ifdef SPECK64128
+#define SPECK64128
+#endif
+
+#ifdef SPECK128128
+#define SPECK128128
+#endif
+
+
+#ifdef SPECK128192
+#define SPECK128192
+#endif
+
+#ifdef SPECK128256
+#define SPECK128256
+#endif
+#endif
+
+#ifdef AES
+#define AES
+#include "aes.h"
+#include "aes.c"
+#endif
+
+#ifdef RC4
+#define RC4
+#include "rc4.h"
+#include "rc4.c"
+#endif
+
 #ifdef ENCRYPTION
 #include "light_crypto.h"
-#define SPECK128192
-
-#ifdef TEST
-//#define CHACHA20
-//#define RABBIT
-//#define TRIVIUM
-//#define SIMON6496
-//#define SIMON64128
-//#define SIMON128128
-//#define SIMON128192
-//#define SIMON128256
-//#define SPECK6496
-//#define SPECK64128
-//#define SPECK128128
-//#define SPECK128256
-#endif
 #endif
 
 #include "mavlink_sha256.h"
+
 
 static int readed_cert = 0;
 
@@ -421,7 +474,7 @@ namespace mavlink
 			buf[9] = (msg->msgid >> 16) & 0xFF;
 		}
 
-#ifdef ENCRYPTION
+#ifdef TESTENCRYPTION
 		if (msg->msgid != 0 && msg->msgid != 10000 && msg->msgid != 10010)
 		{
 #ifdef CHACHA20
@@ -499,7 +552,7 @@ namespace mavlink
 
 			Simon128128(nonce, k, (uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), msg->len);
 #endif
-
+            
 #ifdef SIMON128192
 			uint8_t k[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
 			uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
@@ -535,8 +588,10 @@ namespace mavlink
 #endif
 
 #ifdef SPECK128192
-			key_status_t *remote_key = mavlink_get_remote_key(0); //how get the right key?
-			Speck128192(remote_key->iv, remote_key->shared_key, (uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), msg->len);
+			uint8_t k[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+			uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+            
+			Speck128192(nonce, k, (uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), msg->len);
 #endif
 
 #ifdef SPECK128256
@@ -546,6 +601,11 @@ namespace mavlink
 			Speck128256(nonce, k, (uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), msg->len);
 #endif
 		}
+#endif
+
+#ifdef ENCRYPTION
+			key_status_t *remote_key = mavlink_get_remote_key(0); //how get the right key?
+			Speck128192(remote_key->iv, remote_key->shared_key, (uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), msg->len);
 #endif
 		uint16_t checksum = crc_calculate(&buf[1], header_len - 1);
 		crc_accumulate_buffer(&checksum, _MAV_PAYLOAD(msg), msg->len);
@@ -646,9 +706,55 @@ namespace mavlink
 			buf[9] = (msgid >> 16) & 0xFF;
 		}
 
-#ifdef ENCRYPTION
+#ifdef TESTENCRYPTION
 		if (msgid != 0 && msgid != 10000 && msgid != 10010)
 		{
+#ifdef RC4
+            unsigned char user_key[] = {
+                0x00, 0x01, 0x02, 0x03,
+                0x04, 0x05, 0x06, 0x07,
+                0x08, 0x09, 0x0a, 0x0b,
+                0x0c, 0x0d, 0x0e, 0x0f,
+                0x10, 0x11, 0x12, 0x13,
+                0x14, 0x15, 0x16, 0x17,
+                0x18, 0x19, 0x1a, 0x1b,
+                0x1c, 0x1d, 0x1e, 0x1f};
+                
+            unsigned char encrypt[length];
+
+            unsigned char encrypt_key[RC4_TABLE_LENGTH];
+            rc4_generate_key(encrypt_key, user_key, 32);
+
+            rc4_encrypt(encrypt_key, (unsigned char*)packet, encrypt, length);
+#endif
+            
+#ifdef AES
+            unsigned char user_key[16] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f };
+    
+            unsigned char ct[length];
+            WORD key_schedule[60];
+            BYTE encrypt[128];
+
+            BYTE iv[1][16] = {
+                {
+                    0xf0,0xf1,0xf2,0xf3,0xf4,0xf5,0xf6,0xf7,
+                    0xf8,0xf9,0xfa,0xfb,0xfc,0xfd,0xfe,0xff
+                },
+            };
+	
+            BYTE key[1][32] = {
+                {
+                    0x60,0x3d,0xeb,0x10,0x15,0xca,0x71,0xbe,
+                    0x2b,0x73,0xae,0xf0,0x85,0x7d,0x77,0x81,
+                    0x1f,0x35,0x2c,0x07,0x3b,0x61,0x08,0xd7,
+                    0x2d,0x98,0x10,0xa3,0x09,0x14,0xdf,0xf4
+                }
+            };
+            
+            aes_key_setup(key[0], key_schedule, 256);
+            aes_encrypt_ctr((BYTE *)packet, length, encrypt, key_schedule, 256, iv[0]);
+#endif
+            
 #ifdef CHACHA20
 			//set key
 			uint8_t key[] = {
@@ -761,8 +867,10 @@ namespace mavlink
 #endif
 
 #ifdef SPECK128192
-			key_status_t *remote_key = mavlink_get_remote_key(0); //how get the right key?
-			Speck128192(remote_key->iv, remote_key->shared_key, (uint8_t *)packet, length);
+            uint8_t k[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+			uint8_t nonce[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+
+			Speck128192(nonce, k, (uint8_t *)packet, length);
 #endif
 
 #ifdef SPECK128256
@@ -772,6 +880,11 @@ namespace mavlink
 			Speck128256(nonce, k, (uint8_t *)packet, length);
 #endif
 		}
+#endif
+
+#ifdef ENCRYPTION
+			key_status_t *remote_key = mavlink_get_remote_key(0); //how get the right key?
+			Speck128192(remote_key->iv, remote_key->shared_key, (uint8_t *)packet, length);
 #endif
 		status->current_tx_seq++;
 		checksum = crc_calculate((const uint8_t *)&buf[1], header_len);
@@ -1249,6 +1362,54 @@ namespace mavlink
 #ifdef ENCRYPTION
 				if (rxmsg->msgid != 0 && rxmsg->msgid != 10000 && rxmsg->msgid != 10010)
 				{
+ 
+#ifdef RC4
+                unsigned char user_key[] = {
+                    0x00, 0x01, 0x02, 0x03,
+                    0x04, 0x05, 0x06, 0x07,
+                    0x08, 0x09, 0x0a, 0x0b,
+                    0x0c, 0x0d, 0x0e, 0x0f,
+                    0x10, 0x11, 0x12, 0x13,
+                    0x14, 0x15, 0x16, 0x17,
+                    0x18, 0x19, 0x1a, 0x1b,
+                    0x1c, 0x1d, 0x1e, 0x1f};
+                
+                unsigned char decrypt[rxmsg->len];
+
+                unsigned char decrypt_key[RC4_TABLE_LENGTH];
+                rc4_generate_key(decrypt_key, user_key, 32);
+
+                rc4_decrypt(decrypt_key, (uint8_t *)_MAV_PAYLOAD(rxmsg), decrypt, rxmsg->len);
+				memcpy((uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), decrypt, sizeof(decrypt));
+#endif
+            
+#ifdef AES
+                WORD key_schedule[60];
+                BYTE encrypt[128];
+                
+                BYTE decrypt[128];
+                BYTE iv[1][16] = {
+                    {
+                        0xf0,0xf1,0xf2,0xf3,0xf4,0xf5,0xf6,
+                        0xf7,0xf8,0xf9,0xfa,0xfb,0xfc,0xfd,0xfe,0xff
+                    },
+                };
+                
+                BYTE key[1][32] = {
+                    {
+                        0x60,0x3d,0xeb,0x10,0x15,0xca,0x71,0xbe,
+                        0x2b,0x73,0xae,0xf0,0x85,0x7d,0x77,0x81,
+                        0x1f,0x35,0x2c,0x07,0x3b,0x61,0x08,0xd7,
+                        0x2d,0x98,0x10,0xa3,0x09,0x14,0xdf,0xf4
+                    }
+                };
+                
+                aes_key_setup(key[0], key_schedule, 256);
+                aes_decrypt_ctr((uint8_t *)_MAV_PAYLOAD(rxmsg), rxmsg->len, decrypt, key_schedule, 256, iv[0]);
+                memcpy((uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), decrypt, sizeof(decrypt));
+                
+#endif                   
+
 #ifdef CHACHA20
 					uint8_t key[] = {
 						0x00, 0x01, 0x02, 0x03,
