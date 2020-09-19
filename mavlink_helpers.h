@@ -5,8 +5,6 @@
 #include "mavlink_types.h"
 #include "mavlink_conversions.h"
 #include <stdio.h>
-#include "fourq.h"
-#include "tiger.h"
 #include <time.h>
 
 
@@ -20,84 +18,45 @@
 
 #define member_size(type, member) sizeof(((type *)0)->member)
 
+#define TESTENCRYPTION
+//#include "light_crypto.h"
+
 /*
 *include Crypto
 */
 #ifdef TESTENCRYPTION
-#ifdef CHACHA20
-#define CHACHA20
+//#define TRIVIUM
+//#define RABBIT
+//#define CHACHA20
+//#define SIMON6496
+//#define SIMON64128
+//#define SIMON128128
+//#define SIMON128192
+//#define SIMON128256
+//#define SPECK6496
+//#define SPECK64128
+//#define SPECK128128
+//#define SPECK128192
+//#define SPECK128256
+//#define AES
+//#include "aes.h"
+//#define RC4
+//#include "rc4.h"
 #endif
 
-#ifdef RABBIT
-#define RABBIT
-#endif
-
-#ifdef TRIVIUM
-#define TRIVIUM
-#endif
-
-#ifdef SIMON6496
-#define SIMON6496
-#endif
-
-#ifdef SIMON64128
-#define SIMON64128
-#endif
-
-#ifdef SIMON128128
-#define SIMON128128
-#endif
-
-#ifdef SIMON128192
-#define SIMON128192
-#endif
-
-#ifdef SIMON128256
-#define SIMON128256
-#endif
-
-#ifdef SPECK6496
-#define SPECK6496
-#endif
-
-#ifdef SPECK64128
-#define SPECK64128
-#endif
-
-#ifdef SPECK128128
-#define SPECK128128
-#endif
-
-
-#ifdef SPECK128192
-#define SPECK128192
-#endif
-
-#ifdef SPECK128256
-#define SPECK128256
-#endif
-#endif
-
-#ifdef AES
-#define AES
-#include "aes.h"
-#include "aes.c"
-#endif
-
-#ifdef RC4
-#define RC4
-#include "rc4.h"
-#include "rc4.c"
-#endif
 
 #ifdef ENCRYPTION
+#include "fourq.h"
+#include "tiger.h"
 #include "light_crypto.h"
+
+static int readed_cert = 0;
 #endif
 
 #include "mavlink_sha256.h"
 
 
-static int readed_cert = 0;
+
 
 #ifdef MAVLINK_USE_CXX_NAMESPACE
 namespace mavlink
@@ -153,7 +112,7 @@ namespace mavlink
 		mavlink_status_t *status = mavlink_get_channel_status(chan);
 		status->parse_state = MAVLINK_PARSE_STATE_IDLE;
 	}
-
+#ifdef ENCRYPTION
 	MAVLINK_HELPER mavlink_device_certificate_t *mavlink_get_device_certificate()
 	{
 		static mavlink_device_certificate_t mavlink_device_certificate;
@@ -217,6 +176,7 @@ namespace mavlink
 
 		return &remote_keys[id];
 	}
+	
 
 	MAVLINK_HELPER void mavlink_set_remote_key(int id, uint8_t *public_key)
 	{
@@ -263,6 +223,7 @@ namespace mavlink
 		key_status_t *key = mavlink_get_remote_key(id);
 		return key->status;
 	}
+#endif
 
 	/**
  * @brief create a signature block for a packet
@@ -475,8 +436,38 @@ namespace mavlink
 		}
 
 #ifdef TESTENCRYPTION
+        printf("TEST BLOCK1\n");
 		if (msg->msgid != 0 && msg->msgid != 10000 && msg->msgid != 10010)
 		{
+            
+#ifdef RC4
+            
+            struct rc4_key key;
+            printf("QUA1\n");
+            
+            unsigned char user_key[] = {
+                0x00, 0x01, 0x02, 0x03,
+                0x04, 0x05, 0x06, 0x07,
+                0x08, 0x09, 0x0a, 0x0b,
+                0x0c, 0x0d, 0x0e, 0x0f,
+                0x10, 0x11, 0x12, 0x13,
+                0x14, 0x15, 0x16, 0x17,
+                0x18, 0x19, 0x1a, 0x1b,
+                0x1c, 0x1d, 0x1e, 0x1f};
+            
+            prepare_key(user_key, sizeof(user_key), &key);
+            rc4((uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), length, &key);
+#endif
+            
+#ifdef AES
+            uint8_t key[16] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
+            uint8_t iv[16]  = { 0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff };
+            
+            struct AES_ctx ctx;
+            AES_init_ctx_iv(&ctx, key, iv);
+            AES_CTR_xcrypt_buffer(&ctx, (uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), msg->len);
+#endif
+            
 #ifdef CHACHA20
 			uint8_t key[] = {
 				0x00, 0x01, 0x02, 0x03,
@@ -503,11 +494,11 @@ namespace mavlink
 			uint8_t key[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99};
 
 			//initialize initial vector
-			uint8_t iv[] = {
+			uint8_t vi[] = {
 				0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23};
 
 			//encrypt payload
-			trivium((uint8_t *)key, (uint8_t *)iv, (uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), length);
+			trivium((uint8_t *)key, (uint8_t *)vi, (uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), length);
 
 #endif
 
@@ -521,12 +512,12 @@ namespace mavlink
 					0x10, 0x49, 0x2c, 0x95,
 					0x48, 0xff, 0x81, 0x48};
 			//64 bits iv
-			const uint8_t iv[] = {
+			const uint8_t vi[] = {
 				0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
 
 			uint8_t encrypt[length];
 			//encrypt payload
-			rabbit((uint8_t *)iv, (uint8_t *)key, (const uint8_t *)_MAV_PAYLOAD(msg), encrypt, length);
+			rabbit((uint8_t *)vi, (uint8_t *)key, (const uint8_t *)_MAV_PAYLOAD(msg), encrypt, length);
 			//copy encrypted payload in msg
 			memcpy((uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), encrypt, sizeof(encrypt));
 #endif
@@ -604,8 +595,13 @@ namespace mavlink
 #endif
 
 #ifdef ENCRYPTION
+
+        printf("enc1\n");
+            if (msg->msgid != 0 && msg->msgid != 10000 && msg->msgid != 10010)
+{
 			key_status_t *remote_key = mavlink_get_remote_key(0); //how get the right key?
 			Speck128192(remote_key->iv, remote_key->shared_key, (uint8_t *)_MAV_PAYLOAD_NON_CONST(msg), msg->len);
+}
 #endif
 		uint16_t checksum = crc_calculate(&buf[1], header_len - 1);
 		crc_accumulate_buffer(&checksum, _MAV_PAYLOAD(msg), msg->len);
@@ -707,9 +703,15 @@ namespace mavlink
 		}
 
 #ifdef TESTENCRYPTION
+
+        printf("TEST BLOCK2\n");
 		if (msgid != 0 && msgid != 10000 && msgid != 10010)
 		{
 #ifdef RC4
+            
+            struct rc4_key key;
+            printf("QUA2\n");
+            
             unsigned char user_key[] = {
                 0x00, 0x01, 0x02, 0x03,
                 0x04, 0x05, 0x06, 0x07,
@@ -719,40 +721,18 @@ namespace mavlink
                 0x14, 0x15, 0x16, 0x17,
                 0x18, 0x19, 0x1a, 0x1b,
                 0x1c, 0x1d, 0x1e, 0x1f};
-                
-            unsigned char encrypt[length];
-
-            unsigned char encrypt_key[RC4_TABLE_LENGTH];
-            rc4_generate_key(encrypt_key, user_key, 32);
-
-            rc4_encrypt(encrypt_key, (unsigned char*)packet, encrypt, length);
+            
+            prepare_key(user_key, sizeof(user_key), &key);
+            rc4((uint8_t *)packet, length, &key);
 #endif
             
 #ifdef AES
-            unsigned char user_key[16] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f };
-    
-            unsigned char ct[length];
-            WORD key_schedule[60];
-            BYTE encrypt[128];
-
-            BYTE iv[1][16] = {
-                {
-                    0xf0,0xf1,0xf2,0xf3,0xf4,0xf5,0xf6,0xf7,
-                    0xf8,0xf9,0xfa,0xfb,0xfc,0xfd,0xfe,0xff
-                },
-            };
-	
-            BYTE key[1][32] = {
-                {
-                    0x60,0x3d,0xeb,0x10,0x15,0xca,0x71,0xbe,
-                    0x2b,0x73,0xae,0xf0,0x85,0x7d,0x77,0x81,
-                    0x1f,0x35,0x2c,0x07,0x3b,0x61,0x08,0xd7,
-                    0x2d,0x98,0x10,0xa3,0x09,0x14,0xdf,0xf4
-                }
-            };
+            uint8_t key[16] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
+            uint8_t iv[16]  = { 0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff };
             
-            aes_key_setup(key[0], key_schedule, 256);
-            aes_encrypt_ctr((BYTE *)packet, length, encrypt, key_schedule, 256, iv[0]);
+            struct AES_ctx ctx;
+            AES_init_ctx_iv(&ctx, key, iv);
+            AES_CTR_xcrypt_buffer(&ctx, (uint8_t *)packet, length);
 #endif
             
 #ifdef CHACHA20
@@ -784,11 +764,11 @@ namespace mavlink
 			uint8_t key[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99};
 
 			//initialize initial vector
-			uint8_t iv[] = {
+			uint8_t vi[] = {
 				0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23};
 
 			//encrypt payload
-			trivium((uint8_t *)key, (uint8_t *)iv, (uint8_t *)packet, length);
+			trivium((uint8_t *)key, (uint8_t *)vi, (uint8_t *)packet, length);
 
 #endif
 
@@ -802,12 +782,12 @@ namespace mavlink
 					0x10, 0x49, 0x2c, 0x95,
 					0x48, 0xff, 0x81, 0x48};
 			//64 bits iv
-			const uint8_t iv[] = {
+			const uint8_t vi[] = {
 				0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
 
 			uint8_t encrypt[length];
 			//encrypt payload
-			rabbit((uint8_t *)iv, (uint8_t *)key, (uint8_t *)packet, encrypt, length);
+			rabbit((uint8_t *)vi, (uint8_t *)key, (uint8_t *)packet, encrypt, length);
 			//copy encrypted payload in msg
 			memcpy((uint8_t *)packet, encrypt, sizeof(encrypt));
 #endif
@@ -883,8 +863,13 @@ namespace mavlink
 #endif
 
 #ifdef ENCRYPTION
+
+        printf("enc2\n");
+        if (msgid != 0 && msgid != 10000 && msgid != 10010)
+{
 			key_status_t *remote_key = mavlink_get_remote_key(0); //how get the right key?
 			Speck128192(remote_key->iv, remote_key->shared_key, (uint8_t *)packet, length);
+}
 #endif
 		status->current_tx_seq++;
 		checksum = crc_calculate((const uint8_t *)&buf[1], header_len);
@@ -1359,56 +1344,39 @@ namespace mavlink
 					}
 				}
 
-#ifdef ENCRYPTION
+#ifdef TESTENCRYPTION
+
+            printf("TEST BLOCK3\n");
 				if (rxmsg->msgid != 0 && rxmsg->msgid != 10000 && rxmsg->msgid != 10010)
 				{
  
 #ifdef RC4
-                unsigned char user_key[] = {
-                    0x00, 0x01, 0x02, 0x03,
-                    0x04, 0x05, 0x06, 0x07,
-                    0x08, 0x09, 0x0a, 0x0b,
-                    0x0c, 0x0d, 0x0e, 0x0f,
-                    0x10, 0x11, 0x12, 0x13,
-                    0x14, 0x15, 0x16, 0x17,
-                    0x18, 0x19, 0x1a, 0x1b,
-                    0x1c, 0x1d, 0x1e, 0x1f};
-                
-                unsigned char decrypt[rxmsg->len];
-
-                unsigned char decrypt_key[RC4_TABLE_LENGTH];
-                rc4_generate_key(decrypt_key, user_key, 32);
-
-                rc4_decrypt(decrypt_key, (uint8_t *)_MAV_PAYLOAD(rxmsg), decrypt, rxmsg->len);
-				memcpy((uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), decrypt, sizeof(decrypt));
+            
+            struct rc4_key key;
+            printf("QUA3\n");
+            
+            unsigned char user_key[] = {
+                0x00, 0x01, 0x02, 0x03,
+                0x04, 0x05, 0x06, 0x07,
+                0x08, 0x09, 0x0a, 0x0b,
+                0x0c, 0x0d, 0x0e, 0x0f,
+                0x10, 0x11, 0x12, 0x13,
+                0x14, 0x15, 0x16, 0x17,
+                0x18, 0x19, 0x1a, 0x1b,
+                0x1c, 0x1d, 0x1e, 0x1f};
+            
+            prepare_key(user_key, sizeof(user_key), &key);
+            rc4((uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), rxmsg->len, &key);
 #endif
             
 #ifdef AES
-                WORD key_schedule[60];
-                BYTE encrypt[128];
-                
-                BYTE decrypt[128];
-                BYTE iv[1][16] = {
-                    {
-                        0xf0,0xf1,0xf2,0xf3,0xf4,0xf5,0xf6,
-                        0xf7,0xf8,0xf9,0xfa,0xfb,0xfc,0xfd,0xfe,0xff
-                    },
-                };
-                
-                BYTE key[1][32] = {
-                    {
-                        0x60,0x3d,0xeb,0x10,0x15,0xca,0x71,0xbe,
-                        0x2b,0x73,0xae,0xf0,0x85,0x7d,0x77,0x81,
-                        0x1f,0x35,0x2c,0x07,0x3b,0x61,0x08,0xd7,
-                        0x2d,0x98,0x10,0xa3,0x09,0x14,0xdf,0xf4
-                    }
-                };
-                
-                aes_key_setup(key[0], key_schedule, 256);
-                aes_decrypt_ctr((uint8_t *)_MAV_PAYLOAD(rxmsg), rxmsg->len, decrypt, key_schedule, 256, iv[0]);
-                memcpy((uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), decrypt, sizeof(decrypt));
-                
-#endif                   
+            uint8_t key[16] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
+            uint8_t iv[16]  = { 0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff };
+            
+            struct AES_ctx ctx;
+            AES_init_ctx_iv(&ctx, key, iv);
+            AES_CTR_xcrypt_buffer(&ctx, (uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), rxmsg->len);
+#endif                 
 
 #ifdef CHACHA20
 					uint8_t key[] = {
@@ -1434,10 +1402,10 @@ namespace mavlink
 					uint8_t key[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99};
 
 					//initialize initial vector
-					uint8_t iv[] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23};
+					uint8_t vi[] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef, 0x01, 0x23};
 
 					//encrypt payload
-					trivium((uint8_t *)key, (uint8_t *)iv, (uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), rxmsg->len);
+					trivium((uint8_t *)key, (uint8_t *)vi, (uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), rxmsg->len);
 #endif
 
 #ifdef RABBIT
@@ -1450,12 +1418,12 @@ namespace mavlink
 							0x10, 0x49, 0x2c, 0x95,
 							0x48, 0xff, 0x81, 0x48};
 					//64 bits iv
-					const uint8_t iv[] = {
+					const uint8_t vi[] = {
 						0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
 
 					uint8_t decrypt[rxmsg->len];
 					//decrypt payload
-					rabbit((uint8_t *)iv, (uint8_t *)key, (uint8_t *)_MAV_PAYLOAD(rxmsg), decrypt, rxmsg->len);
+					rabbit((uint8_t *)vi, (uint8_t *)key, (uint8_t *)_MAV_PAYLOAD(rxmsg), decrypt, rxmsg->len);
 					//copy encrypted payload in msg
 					memcpy((uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), decrypt, sizeof(decrypt));
 #endif
@@ -1528,6 +1496,15 @@ namespace mavlink
 					Speck128256(nonce, k, (uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), rxmsg->len);
 #endif
 				}
+#endif
+#ifdef ENCRYPTION
+
+        printf("enc3\n");
+if (rxmsg->msgid != 0 && rxmsg->msgid != 10000 && rxmsg->msgid != 10010)
+{
+        key_status_t *remote_key = mavlink_get_remote_key(0);
+		Speck128192(remote_key->iv, remote_key->shared_key, (uint8_t *)_MAV_PAYLOAD_NON_CONST(rxmsg), rxmsg->len);
+}
 #endif
 
 				status->parse_state = MAVLINK_PARSE_STATE_IDLE;

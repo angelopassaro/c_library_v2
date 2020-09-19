@@ -101,7 +101,6 @@ MAVLINK_HELPER void Speck128192(uint8_t *nonce, uint8_t *key, uint8_t *plaintext
     xored(ct, &plaintext[block], length - block);
 }
 
-#ifdef TEST
 /***************************************************************************
  *                              CHACHA20                                   *
  * *************************************************************************/
@@ -353,14 +352,14 @@ inline void key_setup(t_instances *instances, const uint8_t *p_key)
 }
 
 /* IV setup */
-inline void iv_setup(t_instances *instances, const uint8_t *iv)
+inline void vi_setup(t_instances *instances, const uint8_t *vi)
 {
     /* Temporary variables */
     uint8_t i0, i1, i2, i3, i;
 
     /* Generate four subvectors */
-    i0 = *(uint32_t *)(iv + 0);
-    i2 = *(uint32_t *)(iv + 4);
+    i0 = *(uint32_t *)(vi + 0);
+    i2 = *(uint32_t *)(vi + 4);
     i1 = (i0 >> 16) | (i2 & 0xFFFF0000);
     i3 = (i2 << 16) | (i0 & 0x0000FFFF);
 
@@ -406,12 +405,12 @@ inline void _cipher_rabbit(t_instance *p_instance, const uint8_t *p_src, uint8_t
     }
 }
 
-MAVLINK_HELPER void rabbit(const uint8_t *iv, const uint8_t *p_key, const uint8_t *p_src, uint8_t *p_dest, size_t data_size)
+MAVLINK_HELPER void rabbit(const uint8_t *vi, const uint8_t *p_key, const uint8_t *p_src, uint8_t *p_dest, size_t data_size)
 {
     t_instances instances;
 
     key_setup((t_instances *)&instances, (uint8_t *)p_key);
-    iv_setup((t_instances *)&instances, iv);
+    vi_setup((t_instances *)&instances, vi);
     _cipher_rabbit((t_instance *)&instances.work, (uint8_t *)p_src, (uint8_t *)p_dest, data_size);
 }
 
@@ -473,7 +472,7 @@ static inline void update(uint64_t *state, uint64_t *t1, uint64_t *t2, uint64_t 
     *t3 ^= (x1 & x2) ^ x3;
 }
 
-MAVLINK_HELPER void setup(uint8_t *state, uint8_t *key, uint8_t *iv)
+MAVLINK_HELPER void setup(uint8_t *state, uint8_t *key, uint8_t *vi)
 {
     uint64_t t1, t2, t3;
     uint64_t s;
@@ -500,14 +499,14 @@ MAVLINK_HELPER void setup(uint8_t *state, uint8_t *key, uint8_t *iv)
     state[15] = key[1];
 
     /* Initialize register B */
-    state[16] = iv[2];
-    state[17] = iv[3];
-    state[18] = iv[4];
-    state[19] = iv[5];
-    state[20] = iv[6];
-    state[21] = iv[7];
-    state[22] = iv[8];
-    state[23] = iv[9];
+    state[16] = vi[2];
+    state[17] = vi[3];
+    state[18] = vi[4];
+    state[19] = vi[5];
+    state[20] = vi[6];
+    state[21] = vi[7];
+    state[22] = vi[8];
+    state[23] = vi[9];
 
     state[24] = 0x00;
     state[25] = 0x00;
@@ -515,8 +514,8 @@ MAVLINK_HELPER void setup(uint8_t *state, uint8_t *key, uint8_t *iv)
     state[27] = 0x00;
     state[28] = 0x00;
     state[29] = 0x00;
-    state[30] = iv[0];
-    state[31] = iv[1];
+    state[30] = vi[0];
+    state[31] = vi[1];
 
     /* Initialize register C */
     state[32] = 0x00;
@@ -607,14 +606,14 @@ inline void _cipher_trivium(uint8_t *state, uint8_t *stream, uint16_t length)
     }
 }
 
-MAVLINK_HELPER void trivium(uint8_t *key, uint8_t *iv, uint8_t *stream, uint8_t length)
+MAVLINK_HELPER void trivium(uint8_t *key, uint8_t *vi, uint8_t *stream, uint8_t length)
 {
 
     //state
     uint8_t state[48];
 
     //setup state
-    setup((uint8_t *)state, (uint8_t *)key, (uint8_t *)iv);
+    setup((uint8_t *)state, (uint8_t *)key, (uint8_t *)vi);
     _cipher_trivium((uint8_t *)state, (uint8_t *)stream, length);
 }
 
@@ -1496,5 +1495,4 @@ MAVLINK_HELPER void Speck128256(uint8_t *nonce, uint8_t *key, uint8_t *plaintext
     //STEP3
     xored(ct, &plaintext[block], length - block);
 }
-#endif
 #endif

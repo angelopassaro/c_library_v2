@@ -41,9 +41,6 @@ namespace mavlink
 #define MAVLINK_IV_EMPTY 0
 #define MAVLINK_IV_COMPLETE 1
 
-#define MAVLINK_DEVICE_CERTIFICATE 0
-#define MAVLINK_GCS_CERTIFICATE 1
-
     /**
  * Old-style 4 byte param union
  *
@@ -314,6 +311,7 @@ namespace mavlink
         uint8_t target_system_ofs;    // payload offset to target_system, or 0
         uint8_t target_component_ofs; // payload offset to target_component, or 0
     } mavlink_msg_entry_t;
+
 
     typedef struct info_s
     {
